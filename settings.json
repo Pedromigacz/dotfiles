@@ -1,0 +1,103 @@
+{
+  "emmet.showExpandedAbbreviation": "never",
+  "files.associations": {
+    "*.txt": "javascript",
+    "*.env*": "dotenv",
+    "*.ts": "typescript"
+  },
+  "editor.colorDecorators": false,
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.tabSize": 2,
+  "[typescript]": {
+    "editor.parameterHints.enabled": true
+  },
+  "[typescriptreact]": {
+    "editor.parameterHints.enabled": true,
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "editor.inlineSuggest.enabled": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifier": "project-relative",
+  "explorer.compactFolders": false,
+  "git.confirmSync": false,
+  "terminal.integrated.env.linux": {},
+  "[astro]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[svg]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[mdx]": {},
+  "editor.formatOnSave": true,
+  "[dockerfile]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "diffEditor.renderSideBySide": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.openRepositoryInParentFolders": "always",
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "biome.suggestInstallingGlobally": false,
+  "totalTypeScript.hiddenTips": [
+    "null-keyword",
+    "ts-object-type",
+    "basic-types",
+    "passing-generics-to-types",
+    "type-alias-declaration",
+    "type-alias-with-generics",
+    "optional-object-property",
+    "awaited-utility-type",
+    "returntype-utility-type",
+    "nonnullable-utility-type",
+    "literal-type",
+    "record-utility-type",
+    "conditional-type",
+    "infer",
+    "generic-slots-in-functions",
+    "extract-utility-type",
+    "typing-function-parameters",
+    "mapped-type",
+    "keyof",
+    "type-alias-with-multiple-generics",
+    "union-type",
+    "array-type",
+    "nested-conditional-type",
+    "undefined-keyword",
+    "variable-type-annotation",
+    "partial-utility-type",
+    "typeof",
+    "non-null-expression",
+    "in-operator-narrowing",
+    "as-const",
+    "as-const-on-object",
+    "omit-utility-type"
+  ],
+  "totalTypeScript.hideAllTips": false,
+  "totalTypeScript.hideBasicTips": true,
+  "remote.autoForwardPortsSource": "hybrid",
+  "typescript.tsserver.log": "off",
+    "workbench.colorTheme": "Min Dark",
+  "workbench.preferredDarkColorTheme": "Min Dark",
+  "workbench.iconTheme": "symbols",
+  "workbench.sideBar.location": "right",
+  "workbench.activityBar.location": "hidden",
+  "workbench.statusBar.visible": false,
+  "workbench.editor.showTabs": "multiple",
+  "editor.suggest.showSnippets": false,
+  "workbench.tips.enabled": false,
+  "workbench.layoutControl.enabled": false,
+  "window.menuBarVisibility": "compact",
+  "window.commandCenter": false,
+  "symbols.hidesExplorerArrows": false,
+  
+  "editor.fontFamily": "JetBrains Mono",
+  "editor.fontLigatures": true,
+  "editor.fontSize": 13,
+  "editor.minimap.enabled": false,
+  "editor.minimap.renderCharacters": false
+
+}
