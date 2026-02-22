@@ -1,7 +1,7 @@
 #!/bin/bash
 
 REPO_ROOT="$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")"
-STOW_FILE="$(dirname "${BASH_SOURCE[0]}")/to-stow"
+STOW_FILE="$(dirname "${BASH_SOURCE[0]}")/to-stow.list"
 
 is_stow_installed() {
   pacman -Qi "stow" &> /dev/null
