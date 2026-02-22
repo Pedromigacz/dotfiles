@@ -9,7 +9,7 @@ while IFS= read -r line; do
     package="$line"
 
     if yay -Qi "$package" &>/dev/null; then
-        if ! yay -Rns --noconfirm "$package" 2>/tmp/yay_err >/dev/null; then            cat /tmp/yay_err >&2
+        if ! yay -Rns --noconfirm "$package" 2>/tmp/yay_err >/dev/null; then 
             cat /tmp/yay_err >&2
             echo "Failed to remove $package ❌"
         else
