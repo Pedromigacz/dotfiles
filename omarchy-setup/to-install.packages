@@ -22,6 +22,7 @@ whois
 xmlstarlet
 
 # terminal
+ghostty
 bash-completion
 bat
 eza
@@ -32,6 +33,7 @@ ripgrep
 starship
 tmux
 zoxide
+stow
 
 # fonts & icons
 ttf-ia-writer
