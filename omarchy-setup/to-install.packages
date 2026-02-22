@@ -1,81 +1,19 @@
 # Omarchy core package list installed via install/packaging/base.sh
 # This file is also used by the ISO builder when determining needs
 
-# misc ad omarchy dependencies
-avahi
-gum
-gvfs-mtp
-gvfs-nfs
-gvfs-smb
-iwd
-jq
-kernel-modules-hook
-kvantum-qt5
-less
-libsecret
-libyaml
-libqalculate
-llvm
-luarocks
-man-db
-mariadb-libs
-mpv
-noto-fonts
-noto-fonts-cjk
-noto-fonts-emoji
-nss-mdns
-pamixer
-playerctl
-postgresql-libs
-power-profiles-daemon
-python-gobject
-python-terminaltexteffects
-tree-sitter-cli
-wiremix
-wireplumber
-xdg-desktop-portal-gtk
-xdg-desktop-portal-hyprland
-xdg-terminal-exec
-
 # utilities
-bluetui
-brightnessctl
-btop
-dust
-gnome-calculator
-gnome-keyring
-gnome-themes-extra
-gpu-screen-recorder
-imagemagick
-impala
-imv
-inetutils
-inxi
-kdenlive
-libreoffice-fresh
-localsend
-gnome-disk-utility
+firefox
 obs-studio
 obsidian
-omarchy-walker
-satty
 spotify
-yay
-system-config-printer
-tldr
-tzupdate
-ufw
-ufw-docker
-unzip
-usage
 
 # developmet
 docker
 docker-buildx
 docker-compose
-github-cli
 lazydocker
 lazygit
+github-cli
 mise
 nvim
 omarchy-nvim
@@ -95,36 +33,29 @@ starship
 tmux
 zoxide
 
-# file manager
-ffmpegthumbnailer
-nautilus
-nautilus-python
-sushi
-
-# hypr & related
-hypridle
-hyprland
-hyprland-guiutils
-hyprland-preview-share-picker
-hyprlock
-hyprpicker
-hyprsunset
-mako
-plymouth
-polkit-gnome
-qt5-wayland
-sddm
-slurp
-grim
-swaybg
-swayosd
-uwsm
-waybar
-wireless-regdb
-wl-clipboard  
-
 # fonts & icons
 ttf-ia-writer
 ttf-jetbrains-mono-nerd
 woff2-font-awesome
 yaru-icon-theme
+noto-fonts
+noto-fonts-cjk
+noto-fonts-emoji
+
+# hypr & related
+hyprland
+uwsm
+waybar
+hyprlock
+hypridle
+swaybg
+hyprpicker
+slurp
+grim
+
+# misc & shit I want to guarantee is here
+jq
+luarocks
+tree-sitter-cli
+mariadb-libs
+postgresql-libs
