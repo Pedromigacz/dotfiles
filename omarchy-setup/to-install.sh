@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PACKAGES_FILE="$(dirname "$0")/to-install.packages"
+PACKAGES_FILE="$(dirname "$0")/to-install.list"
 
 while IFS= read -r line; do
     # Skip comments and empty lines
