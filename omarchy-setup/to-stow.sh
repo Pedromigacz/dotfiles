@@ -15,7 +15,7 @@ fi
 while IFS= read -r line; do
     [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
 
-    if ! stow --restow --adopt -d "$REPO_ROOT" -t "$HOME" "$line"; then
+    if ! stow --restow -d "$REPO_ROOT" -t "$HOME" "$line"; then
         echo "Failed to stow $line 😞"
     else
         echo "$line stowed successfully 🤸‍♂"
