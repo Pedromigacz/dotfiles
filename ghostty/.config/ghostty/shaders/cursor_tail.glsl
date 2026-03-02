@@ -1,7 +1,7 @@
 // -- CONFIGURATION --
-vec4 TRAIL_COLOR = iCurrentCursorColor; // can change to eg: vec4(0.2, 0.6, 1.0, 0.5);
+vec4 TRAIL_COLOR = vec4(iCurrentCursorColor.rgb, 0.35); // can change to eg: vec4(0.2, 0.6, 1.0, 0.5);
 const float DURATION = 0.09; // in seconds
-const float MAX_TRAIL_LENGTH = 0.2;
+const float MAX_TRAIL_LENGTH = 0.15;
 const float THRESHOLD_MIN_DISTANCE = 1.5; // min distance to show trail (units of cursor width)
 const float BLUR = 2.0; // blur size in pixels (for antialiasing)
 
@@ -223,7 +223,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
         float sdfTrail = mix(sdfTrail_diag, sdfTrail_rect, isStraightMove);
         
         vec4 trail = TRAIL_COLOR;
-        float trailAlpha = antialising(sdfTrail);
+        float trailSpread = length(head_pos_tl - tail_pos_tl);
+        float trailAlpha = antialising(sdfTrail) * step(0.001, trailSpread);
         newColor = mix(newColor, trail, trailAlpha);
 
         // punch hole
