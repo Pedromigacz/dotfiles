@@ -17,6 +17,7 @@ gtk-toolbar-style = flat
 # Cursor styling
 cursor-style = "block"
 cursor-style-blink = false
+custom-shader = ~/.config/ghostty/shaders/cursor_tail.glsl
 
 # Cursor styling + SSH session terminfo
 # (all shell integration options must be passed together)
