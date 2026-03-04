@@ -7,3 +7,7 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 "$SCRIPT_DIR/pre-stow.sh"
 "$SCRIPT_DIR/to-stow.sh"
 "$SCRIPT_DIR/post-stow.sh"
+# Patch
+"$SCRIPT_DIR/patch-omarchy/fix-omarchy-nvim-themes.sh"
+"$SCRIPT_DIR/patch-omarchy/patch-webapp.sh"
+
