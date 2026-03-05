@@ -98,3 +98,16 @@ See the above repository for updates as well as full license text. */
 /*
 #navigator-toolbox{ flex-direction: column; display: flex; }
 */
+
+/* ---- FORCE toolbox to stay hidden (disables autohide_toolbox reveal) ---- */
+#navigator-toolbox,
+#navigator-toolbox:hover,
+#navigator-toolbox:focus-within,
+#navigator-toolbox[movingtab],
+#navigator-toolbox:has(#urlbar:is([open],[focus-within])),
+:root[customizing] #navigator-toolbox{
+  visibility: collapse !important; /* hard-hide */
+  opacity: 0 !important;
+  transform: rotateX(89.9deg) !important; /* keep it "folded" */
+  pointer-events: none !important;
+}
