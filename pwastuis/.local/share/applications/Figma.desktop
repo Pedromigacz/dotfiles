@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Figma
+Comment=Figma
+Exec=firefox-pwa pwas https://figma.com/
+Terminal=false
+Type=Application
+Icon=/home/pedro/.local/share/applications/icons/Figma.png
+StartupNotify=true
