@@ -12,6 +12,7 @@
   "mason.nvim": { "branch": "main", "commit": "44d1e90e1f66e077268191e3ee9d2ac97cc18e65" },
   "mini.ai": { "branch": "main", "commit": "bfb26d9072670c3aaefab0f53024b2f3729c8083" },
   "mini.nvim": { "branch": "main", "commit": "cad365c212fb1e332cb93fa8f72697125799d00a" },
+  "neo-tree.nvim": { "branch": "v3.x", "commit": "84c75e7a7e443586f60508d12fc50f90d9aee14e" },
   "noice.nvim": { "branch": "main", "commit": "7bfd942445fb63089b59f97ca487d605e715f155" },
   "nui.nvim": { "branch": "main", "commit": "de740991c12411b663994b2860f1a4fd0937c130" },
   "nvim-early-retirement": { "branch": "main", "commit": "0ff579d2da40b070f78861005f8b7838bc663a8b" },
@@ -21,6 +22,7 @@
   "nvim-treesitter-context": { "branch": "master", "commit": "b0c45cefe2c8f7b55fc46f34e563bc428ef99636" },
   "nvim-ts-autotag": { "branch": "main", "commit": "8e1c0a389f20bf7f5b0dd0e00306c1247bda2595" },
   "nvim-web-devicons": { "branch": "master", "commit": "737cf6c657898d0c697311d79d361288a1343d50" },
+  "plenary.nvim": { "branch": "master", "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b" },
   "snacks.nvim": { "branch": "main", "commit": "9912042fc8bca2209105526ac7534e9a0c2071b2" },
   "which-key.nvim": { "branch": "main", "commit": "3aab2147e74890957785941f0c1ad87d0a44c15a" }
 }
