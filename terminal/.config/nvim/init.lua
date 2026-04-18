@@ -19,3 +19,8 @@ autocmd("VimEnter", {
     end
   end,
 })
+
+vim.keymap.set("n", "<leader>oc", function() require("opencode").send_cursor() end,
+  { desc = "Send cursor position to opencode" })
+vim.keymap.set("v", "<leader>oc", function() require("opencode").send_selection() end,
+  { desc = "Send selection to opencode" })
