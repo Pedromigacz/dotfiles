@@ -13,3 +13,6 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHo
   pattern = "*",
   command = "if mode() !~ '\\v(c|r.?|!|t)' && getcmdwintype() == '' | checktime | endif",
 })
+
+-- hide statusbar in favor of lualine config
+vim.opt.laststatus = 0

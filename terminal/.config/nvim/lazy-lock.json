@@ -7,6 +7,7 @@
   "fzf-lua": { "branch": "main", "commit": "d9508cc1d05ffcdc91a32dfd38fc1013a56b20da" },
   "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" },
   "lazydev.nvim": { "branch": "main", "commit": "5231c62aa83c2f8dc8e7ba957aa77098cda1257d" },
+  "lualine.nvim": { "branch": "master", "commit": "a905eeebc4e63fdc48b5135d3bf8aea5618fb21c" },
   "mason-lspconfig.nvim": { "branch": "main", "commit": "a324581a3c83fdacdb9804b79de1cbe00ce18550" },
   "mason-tool-installer.nvim": { "branch": "main", "commit": "443f1ef8b5e6bf47045cb2217b6f748a223cf7dc" },
   "mason.nvim": { "branch": "main", "commit": "44d1e90e1f66e077268191e3ee9d2ac97cc18e65" },
@@ -26,5 +27,6 @@
   "plenary.nvim": { "branch": "master", "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b" },
   "promise-async": { "branch": "main", "commit": "119e8961014c9bfaf1487bf3c2a393d254f337e2" },
   "snacks.nvim": { "branch": "main", "commit": "9912042fc8bca2209105526ac7534e9a0c2071b2" },
+  "token-count.nvim": { "branch": "main", "commit": "4817bf80b56b285af01e55a924c8c20446a0c5f4" },
   "which-key.nvim": { "branch": "main", "commit": "3aab2147e74890957785941f0c1ad87d0a44c15a" }
 }
