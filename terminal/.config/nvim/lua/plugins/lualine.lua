@@ -5,11 +5,11 @@ return {
 		config = function()
 			require('lualine').setup({
 				tabline = {
-					lualine_a = { 'mode' },
-					lualine_b = { 'branch' },
-					lualine_c = { 'filename' },
-					lualine_x = { 'encoding' },
-					lualine_y = { 'progress' },
+					lualine_a = { 'mode', },
+					lualine_b = {
+						'buffers',
+					},
+					lualine_y = { 'lsp_status' },
 					lualine_z = { 'location' },
 				},
 				sections = {}, -- disable the bottom statusline
