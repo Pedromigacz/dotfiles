@@ -1,27 +1,18 @@
 local M = {}
 
--- Find the opencode pane id. Checks current window first, then all windows.
-local function find_opencode_pane()
-  local handle = io.popen("tmux list-panes -a -F '#{pane_id} #{pane_title}'")
-  if not handle then return nil end
-  local output = handle:read("*a")
-  handle:close()
-  for line in output:gmatch("[^\n]+") do
-    local pane_id, title = line:match("^(%S+)%s+(.*)$")
-    if title and title:match("opencode") then
-      return pane_id
-    end
-  end
-  return nil
+-- utilities
+
+local function copy_to_clipboard(text)
+  local job = vim.fn.jobstart({ "wl-copy" }, { stdin = "pipe" })
+  vim.fn.chansend(job, text)
+  vim.fn.chanclose(job, "stdin")
 end
 
--- Get path relative to git root, fall back to cwd-relative.
-local function get_relative_path()
+local function get_current_file_path()
   local abs = vim.fn.expand("%:p")
   if abs == "" then return nil end
   local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
   if vim.v.shell_error == 0 and git_root and git_root ~= "" then
-    -- strip git_root + trailing slash from abs
     if abs:sub(1, #git_root) == git_root then
       return abs:sub(#git_root + 2)
     end
@@ -29,14 +20,45 @@ local function get_relative_path()
   return vim.fn.fnamemodify(abs, ":.")
 end
 
--- Send text to opencode pane via tmux buffer (reliable for multi-line).
-local function send_to_opencode(text)
-  local pane = find_opencode_pane()
-  if not pane then
-    vim.notify("opencode pane not found", vim.log.levels.WARN)
-    return
+local function find_opencode_pane()
+  local handle = io.popen("tmux list-panes -a -F '#{pane_id} #{window_id} #{pane_title}'")
+  if not handle then return nil end
+  local output = handle:read("*a")
+  handle:close()
+  for line in output:gmatch("[^\n]+") do
+    local pane_id, window_id, title = line:match("^(%S+)%s+(%S+)%s+(.*)$")
+    if title and title:lower():match("opencode") then
+      return pane_id, window_id
+    end
   end
-  -- Write to a temp file to avoid shell-escaping headaches
+  return nil, nil
+end
+
+local function get_current_window_id()
+  return vim.fn.system("tmux display-message -p '#{window_id}'"):gsub("\n", "")
+end
+
+
+local function ensure_opencode_as_pane()
+  local oc_pane_id, oc_window_id = find_opencode_pane()
+  if not oc_pane_id then
+    vim.notify("opencode pane not found in any window", vim.log.levels.WARN)
+    return nil
+  end
+
+  local current_window_id = get_current_window_id()
+  if oc_window_id ~= current_window_id then
+    vim.fn.system({ "tmux", "join-pane", "-h", "-l", "20%", "-s", oc_pane_id })
+  end
+
+  return oc_pane_id
+end
+
+-- actions
+
+
+-- Send text to opencode pane via tmux buffer.
+local function send_to_opencode(text, pane)
   local tmpfile = vim.fn.tempname()
   local f = io.open(tmpfile, "w")
   if not f then
@@ -50,33 +72,43 @@ local function send_to_opencode(text)
   os.remove(tmpfile)
 end
 
--- Normal mode: send "@explainer path:Lcursor"
 function M.send_cursor()
-  local path = get_relative_path()
+  local path = get_current_file_path()
   if not path then
     vim.notify("no file path", vim.log.levels.WARN)
     return
   end
+
+  local pane = ensure_opencode_as_pane()
+  if not pane then return end
   local line = vim.fn.line(".")
   local msg = string.format("@explainer %s:L%d", path, line)
-  send_to_opencode(msg)
+  send_to_opencode(msg, pane)
 end
 
--- Visual mode: send "@explainer path:Lstart-Lend\n<selection>"
 function M.send_selection()
-  local path = get_relative_path()
+  local path = get_current_file_path()
   if not path then
     vim.notify("no file path", vim.log.levels.WARN)
     return
   end
-  -- Exit visual mode so marks '< and '> are set
+
+  local pane = ensure_opencode_as_pane()
+  if not pane then return end
   vim.cmd('noautocmd normal! \27')
   local s = vim.fn.getpos("'<")[2]
   local e = vim.fn.getpos("'>")[2]
   local lines = vim.fn.getline(s, e)
   local range = (s == e) and string.format("L%d", s) or string.format("L%d-L%d", s, e)
+
+  vim.notify(
+    string.format("path: %s\nrange: %s", path, range),
+    vim.log.levels.INFO
+  )
+
   local msg = string.format("@explainer %s:%s\n%s", path, range, table.concat(lines, "\n"))
-  send_to_opencode(msg)
+  -- send_to_opencode(msg, pane)
+  copy_to_clipboard(msg)
 end
 
 return M
