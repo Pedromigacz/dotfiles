@@ -1,7 +1,7 @@
 ---
 description: Planning agent. Reads the codebase, writes plan docs to .plan/, asks before running shell commands.
 mode: primary
-temperature: 0.2
+temperature: 0.5
 permission:
   read:
     "*": allow
