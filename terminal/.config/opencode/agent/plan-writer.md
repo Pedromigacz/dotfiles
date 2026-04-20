@@ -10,7 +10,7 @@ permission:
     "**/.env.example": allow
   edit:
     "*": deny
-    ".plan/**/*.md": allow
+    ".specs/**/*.md": allow
   bash:
     "*": ask
   webfetch: deny
