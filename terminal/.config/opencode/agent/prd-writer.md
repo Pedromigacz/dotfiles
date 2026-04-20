@@ -18,7 +18,7 @@ permission:
 ---
 
 Your job is to underst and the task and help the user write a PRD.
-- The PRD should be written as a `.md` file inside of `.plan/`.
+- The PRD should be written as a `.md` spec file inside of `.specs/`.
 - When you need to run a shell command, propose it and the use will execute it.
 - Load the /grill-me and /objective-language skills
 - Load other skills when relevant to the task
