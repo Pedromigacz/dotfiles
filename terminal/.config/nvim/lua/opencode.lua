@@ -39,11 +39,20 @@ local function get_current_window_id()
 end
 
 
-local function ensure_opencode_as_pane()
+local function bring_opencode()
   local oc_pane_id, oc_window_id = find_opencode_pane()
   if not oc_pane_id then
-    vim.notify("opencode pane not found in any window", vim.log.levels.WARN)
-    return nil
+    local out = vim.fn.system({
+      "tmux", "split-window",
+      "-h", "-l", "20%",
+      "-P", "-F", "#{pane_id}",
+      "opencode",
+    })
+    if vim.v.shell_error ~= 0 then
+      vim.notify("failed to spawn opencode: " .. out, vim.log.levels.ERROR)
+      return nil
+    end
+    return vim.trim(out)
   end
 
   local current_window_id = get_current_window_id()
@@ -54,23 +63,32 @@ local function ensure_opencode_as_pane()
   return oc_pane_id
 end
 
+local function paste_on_opencode(text, pane)
+  opts = opts or {}
+  local buf = "nvim-opencode"
+
+  local load = vim.system(
+    { "tmux", "load-buffer", "-b", buf, "-" },
+    { stdin = text }
+  ):wait()
+  if load.code ~= 0 then
+    vim.notify("tmux load-buffer failed: " .. (load.stderr or ""), vim.log.levels.ERROR)
+    return
+  end
+
+  local paste = vim.system(
+    { "tmux", "paste-buffer", "-p", "-d", "-b", buf, "-t", pane }
+  ):wait()
+  if paste.code ~= 0 then
+    vim.notify("tmux paste-buffer failed: " .. (paste.stderr or ""), vim.log.levels.ERROR)
+    return
+  end
+end
+
 -- actions
 
 
--- Send text to opencode pane via tmux buffer.
-local function send_to_opencode(text, pane)
-  local tmpfile = vim.fn.tempname()
-  local f = io.open(tmpfile, "w")
-  if not f then
-    vim.notify("failed to create temp file", vim.log.levels.ERROR)
-    return
-  end
-  f:write(text)
-  f:close()
-  vim.fn.system({ "tmux", "load-buffer", "-b", "nvim-opencode", tmpfile })
-  vim.fn.system({ "tmux", "paste-buffer", "-b", "nvim-opencode", "-d", "-t", pane })
-  os.remove(tmpfile)
-end
+
 
 function M.send_cursor()
   local path = get_current_file_path()
@@ -79,11 +97,11 @@ function M.send_cursor()
     return
   end
 
-  local pane = ensure_opencode_as_pane()
+  local pane = bring_opencode()
   if not pane then return end
   local line = vim.fn.line(".")
   local msg = string.format("@explainer %s:L%d", path, line)
-  send_to_opencode(msg, pane)
+  paste_on_opencode(msg, pane)
 end
 
 function M.send_selection()
@@ -93,7 +111,7 @@ function M.send_selection()
     return
   end
 
-  local pane = ensure_opencode_as_pane()
+  local pane = bring_opencode()
   if not pane then return end
   vim.cmd('noautocmd normal! \27')
   local s = vim.fn.getpos("'<")[2]
@@ -107,7 +125,7 @@ function M.send_selection()
   )
 
   local msg = string.format("@explainer %s:%s\n%s", path, range, table.concat(lines, "\n"))
-  -- send_to_opencode(msg, pane)
+  paste_on_opencode(msg, pane)
   copy_to_clipboard(msg)
 end
 
