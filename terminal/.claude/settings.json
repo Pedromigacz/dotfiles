@@ -3,5 +3,6 @@
     "type": "command",
     "command": "npx -y ccstatusline@latest"
   },
-  "includeCoAuthoredBy": false
+  "includeCoAuthoredBy": false,
+  "autoMemoryEnabled": false
 }
