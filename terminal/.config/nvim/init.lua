@@ -20,11 +20,6 @@ autocmd("VimEnter", {
 	end,
 })
 
-vim.keymap.set("n", "<leader>oc", function() require("opencode").send_cursor() end,
-	{ desc = "Send cursor position to opencode" })
-vim.keymap.set("v", "<leader>oc", function() require("opencode").send_selection() end,
-	{ desc = "Send selection to opencode" })
-
 vim.keymap.set("n", "<leader>ay", function() require("ai").copy() end,
 	{ desc = "Copy file path for AI" })
 vim.keymap.set("v", "<leader>ay", function() require("ai").copy() end,

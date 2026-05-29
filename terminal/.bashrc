@@ -6,5 +6,3 @@
 source ~/.local/share/omarchy/default/bash/rc
 
 # Add your own exports, aliases, and functions here.
-# nvim+opencode startup script
-source ~/.config/shell/nvim.sh
