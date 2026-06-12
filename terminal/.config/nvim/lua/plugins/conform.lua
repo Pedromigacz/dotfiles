@@ -11,6 +11,13 @@ return {
 				json = { "biome", "prettier", stop_after_first = true },
 				lua = { "stylua", lsp_format = "prefer" },
 			},
+			formatters = {
+				-- Only use biome in projects that have a biome config,
+				-- otherwise fall through to prettier
+				biome = {
+					require_cwd = true,
+				},
+			},
 			-- Format synchronously on save, with a timeout
 			format_on_save = {
 				timeout_ms = 2000,
