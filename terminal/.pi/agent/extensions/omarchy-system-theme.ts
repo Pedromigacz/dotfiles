@@ -13,29 +13,29 @@ const home = process.env.HOME ?? "";
 const lightModePath = join(home, ".config/omarchy/current/theme/light.mode");
 
 function omarchyPiTheme(): "light" | "dark" {
-	return existsSync(lightModePath) ? "light" : "dark";
+  return existsSync(lightModePath) ? "light" : "dark";
 }
 
 export default function (pi: ExtensionAPI) {
-	let intervalId: ReturnType<typeof setInterval> | null = null;
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
-	pi.on("session_start", (_event, ctx) => {
-		let currentTheme = omarchyPiTheme();
-		ctx.ui.setTheme(currentTheme);
+  pi.on("session_start", (_event, ctx) => {
+    let currentTheme = omarchyPiTheme();
+    ctx.ui.setTheme(currentTheme);
 
-		intervalId = setInterval(() => {
-			const nextTheme = omarchyPiTheme();
-			if (nextTheme !== currentTheme) {
-				currentTheme = nextTheme;
-				ctx.ui.setTheme(currentTheme);
-			}
-		}, 10000);
-	});
+    intervalId = setInterval(() => {
+      const nextTheme = omarchyPiTheme();
+      if (nextTheme !== currentTheme) {
+        currentTheme = nextTheme;
+        ctx.ui.setTheme(currentTheme);
+      }
+    }, 10000);
+  });
 
-	pi.on("session_shutdown", () => {
-		if (intervalId) {
-			clearInterval(intervalId);
-			intervalId = null;
-		}
-	});
+  pi.on("session_shutdown", () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  });
 }
