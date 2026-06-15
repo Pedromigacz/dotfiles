@@ -1,0 +1,11 @@
+# any file named auth.json, at any depth
+auth.json
+
+# any directory named sessions
+sessions/
+
+# any .lock file
+*.lock
+
+# any directory named npm
+npm/
