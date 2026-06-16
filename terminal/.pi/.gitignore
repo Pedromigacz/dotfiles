@@ -3,6 +3,7 @@ auth.json
 
 # any directory named sessions
 sessions/
+./agent/settings.json
 
 # any .lock file
 *.lock
