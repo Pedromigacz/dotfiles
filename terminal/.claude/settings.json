@@ -8,6 +8,5 @@
     "command": "npx -y ccstatusline@latest"
   },
   "autoMemoryEnabled": false,
-  "skipAutoPermissionPrompt": true,
-  "model": "claude-fable-5[1m]"
+  "skipAutoPermissionPrompt": true
 }
