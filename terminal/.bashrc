@@ -6,3 +6,6 @@
 source ~/.local/share/omarchy/default/bash/rc
 
 # Add your own exports, aliases, and functions here.
+
+# codeburn — TUI dashboard for Claude Code token/cost usage (reads ~/.claude/projects/)
+alias codeburn='npx -y codeburn@latest'
