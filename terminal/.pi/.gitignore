@@ -11,5 +11,5 @@ agent/settings.json
 # any directory named npm
 npm/
 
-# installed type-check deps for extensions (pi provides these at runtime)
+# editor-only type deps for extensions (re-create with: bun install)
 node_modules/
