@@ -10,3 +10,6 @@ agent/settings.json
 
 # any directory named npm
 npm/
+
+# installed type-check deps for extensions (pi provides these at runtime)
+node_modules/

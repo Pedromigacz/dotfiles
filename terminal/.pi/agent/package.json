@@ -1,0 +1,14 @@
+{
+  "name": "pi-agent-extensions",
+  "private": true,
+  "type": "module",
+  "description": "Type-checking deps for local pi extensions. pi bundles these at runtime; they are installed here only so the editor can resolve types.",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@earendil-works/pi-coding-agent": "0.79.4",
+    "@earendil-works/pi-ai": "0.79.4",
+    "@earendil-works/pi-agent-core": "0.79.4",
+    "@earendil-works/pi-tui": "0.79.4",
+    "typebox": "1.1.38"
+  }
+}
