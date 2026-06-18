@@ -31,3 +31,5 @@
 	email = pedromigacz@gmail.com
 [core]
 	excludesFile = /home/pedro/.gitignore_global
+[worktree]
+	guessRemote = true
