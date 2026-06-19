@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["extensions/**/*.ts", "*.ts"]
+  "include": ["extensions/**/*.ts", "tool-tester/**/*.ts", "*.ts"],
+  "exclude": ["**/*.test.ts"]
 }
