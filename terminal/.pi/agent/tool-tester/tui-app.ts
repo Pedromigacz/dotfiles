@@ -12,6 +12,7 @@
 
 import {
   Key,
+  Markdown,
   matchesKey,
   type Component,
   type SelectItem,
@@ -21,13 +22,17 @@ import {
   visibleWidth,
   wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
-import { getSelectListTheme } from "@earendil-works/pi-coding-agent";
+import {
+  getMarkdownTheme,
+  getSelectListTheme,
+} from "@earendil-works/pi-coding-agent";
 
 import type { HarvestedTool } from "./tool-harvest";
 import { runTool, type ToolRunOutcome } from "./tool-runner";
 import { schemaToFields } from "./schema-form";
 import { validateParams } from "./validation";
 import { FormView } from "./form-view";
+import { formatResult } from "./result-format";
 
 type Step = "list" | "form" | "running" | "result";
 
@@ -57,6 +62,7 @@ export class ToolTesterApp implements Component {
   private outcome?: ToolRunOutcome;
   private outcomeLabel = "";
   private resultScroll = 0;
+  private detailsExpanded = false;
   private abort?: AbortController;
 
   constructor(
@@ -137,6 +143,12 @@ export class ToolTesterApp implements Component {
       this.tui.requestRender();
       return;
     }
+    if (data === "d" || data === "D") {
+      // Toggle the structured details between collapsed summary and full JSON.
+      this.detailsExpanded = !this.detailsExpanded;
+      this.tui.requestRender();
+      return;
+    }
     if (matchesKey(data, Key.up)) {
       this.resultScroll = Math.max(0, this.resultScroll - 1);
       this.tui.requestRender();
@@ -197,6 +209,7 @@ export class ToolTesterApp implements Component {
     this.outcome = outcome;
     this.step = "result";
     this.resultScroll = 0;
+    this.detailsExpanded = false;
     this.tui.requestRender();
   }
 
@@ -268,7 +281,21 @@ export class ToolTesterApp implements Component {
     const outcome = this.outcome;
     if (!outcome) return [];
 
-    const body = formatOutcome(outcome, this.outcomeLabel, width);
+    const model = formatResult({
+      content: outcome.result.content,
+      details: outcome.result.details,
+      isError: outcome.isError,
+      durationMs: outcome.durationMs,
+      error: outcome.error,
+    });
+    const body = renderResult(
+      model,
+      this.outcomeLabel,
+      outcome.toolCallId,
+      width,
+      this.detailsExpanded,
+    );
+
     const hintRows = 2; // blank + hint line
     const viewport = Math.max(1, budget - hintRows);
     const maxScroll = Math.max(0, body.length - viewport);
@@ -276,11 +303,16 @@ export class ToolTesterApp implements Component {
 
     const visible = body.slice(this.resultScroll, this.resultScroll + viewport);
     const more = maxScroll > 0 ? `  (${this.resultScroll}/${maxScroll})` : "";
+    const detailsHint = model.details
+      ? this.detailsExpanded
+        ? " · d collapse"
+        : " · d details"
+      : "";
 
     return [
       ...visible,
       "",
-      style.dim(`↑↓ scroll · esc back · ctrl+c quit${more}`),
+      style.dim(`↑↓ scroll${detailsHint} · esc back · ctrl+c quit${more}`),
     ];
   }
 }
@@ -304,56 +336,66 @@ function toScreen(lines: string[], width: number, rows: number): string[] {
 }
 
 /**
- * Slice-01 raw result dump: a status line, content text as-is, image
- * placeholders, and stringified details. Rich rendering arrives in a later slice.
+ * Render a result-format display model into screen lines: a status line with the
+ * duration, an error banner when flagged, content (markdown text + image
+ * placeholders), and the structured details as collapsed summary or full JSON.
  */
-function formatOutcome(
-  outcome: ToolRunOutcome,
+function renderResult(
+  model: ReturnType<typeof formatResult>,
   label: string,
+  toolCallId: string,
   width: number,
+  detailsExpanded: boolean,
 ): string[] {
   const lines: string[] = [];
-  const status = outcome.isError
+
+  const status = model.isError
     ? style.error("● ERROR")
     : style.success("● OK");
   lines.push(
     `${status}  ${style.bold(label)}  ${style.muted(
-      `${outcome.durationMs.toFixed(0)}ms · id ${outcome.toolCallId}`,
+      `${model.durationLabel} · id ${toolCallId}`,
     )}`,
   );
-  if (outcome.error) {
-    lines.push(style.error(outcome.error.stack ?? outcome.error.message));
-  }
-  lines.push("");
 
-  for (const block of outcome.result.content) {
-    if (block.type === "text") {
-      for (const raw of block.text.split("\n")) {
-        lines.push(...wrapOrLine(raw, width));
-      }
-    } else if (block.type === "image") {
-      lines.push(style.muted(`[image ${block.mimeType}]`));
+  if (model.errorBanner) {
+    lines.push("");
+    for (const raw of model.errorBanner.split("\n")) {
+      lines.push(...wrapOrLine(style.error(raw), width));
     }
   }
 
   lines.push("");
-  lines.push(style.muted("details:"));
-  const details = safeStringify(outcome.result.details);
-  for (const raw of details.split("\n")) {
-    lines.push(...wrapOrLine(style.dim(raw), width));
+  for (const segment of model.content) {
+    if (segment.kind === "markdown") {
+      lines.push(...renderMarkdown(segment.text, width));
+    } else {
+      lines.push(style.muted(segment.placeholder));
+    }
   }
+
+  if (model.details) {
+    lines.push("");
+    if (detailsExpanded) {
+      lines.push(style.muted("details:"));
+      for (const raw of model.details.json.split("\n")) {
+        lines.push(...wrapOrLine(style.dim(raw), width));
+      }
+    } else {
+      lines.push(style.muted(`details: ${model.details.summary}`));
+    }
+  }
+
   return lines;
+}
+
+/** Render markdown text to lines using the shared interactive theme. */
+function renderMarkdown(text: string, width: number): string[] {
+  const md = new Markdown(text, 0, 0, getMarkdownTheme());
+  return md.render(width);
 }
 
 function wrapOrLine(text: string, width: number): string[] {
   if (text.length === 0) return [""];
   return wrapTextWithAnsi(text, width);
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2) ?? String(value);
-  } catch {
-    return String(value);
-  }
 }
