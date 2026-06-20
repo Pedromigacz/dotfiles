@@ -34,6 +34,7 @@ import { schemaToFields } from "./schema-form";
 import { validateParams } from "./validation";
 import { FormView } from "./form-view";
 import { formatResult } from "./result-format";
+import { ParamStore } from "./param-store";
 
 type Step = "list" | "form" | "running" | "result";
 
@@ -72,6 +73,8 @@ export class ToolTesterApp implements Component {
     private readonly tui: TUI,
     tools: HarvestedTool[],
     private readonly cwd: string,
+    /** Persists/pre-fills each tool's last-used params across launches. */
+    private readonly store: ParamStore = new ParamStore(),
   ) {
     const items: SelectItem[] = tools.map((t) => {
       this.byValue.set(t.name, t);
@@ -165,7 +168,11 @@ export class ToolTesterApp implements Component {
   private openForm(harvested: HarvestedTool): void {
     this.currentTool = harvested;
     const fields = schemaToFields(harvested.tool.parameters);
-    const form = new FormView(this.tui, fields);
+    // Pre-fill with this tool's last-used params; fields without a stored
+    // value fall back to their schema defaults inside FormView.
+    const stored = this.store.get(harvested.name);
+    const initialValues = isRecord(stored) ? stored : undefined;
+    const form = new FormView(this.tui, fields, initialValues);
     form.onCancel = () => {
       this.step = "list";
       this.form = undefined;
@@ -204,6 +211,9 @@ export class ToolTesterApp implements Component {
     this.partial = undefined;
     this.abort = new AbortController();
     this.tui.requestRender();
+
+    // Remember the exact params used so reopening this tool pre-fills them.
+    this.store.remember(harvested.name, params);
 
     const outcome = await runTool(harvested.tool, {
       params,
@@ -367,6 +377,10 @@ export class ToolTesterApp implements Component {
 }
 
 // --- helpers -------------------------------------------------------------
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 function isPrintable(data: string): boolean {
   if (data.length === 0) return false;

@@ -51,6 +51,11 @@ export class FormView implements Component {
   constructor(
     private readonly tui: TUI,
     descriptors: FieldDescriptor[],
+    /**
+     * Last-used values keyed by field, pre-filling the form on reopen. Each
+     * field falls back to its schema default when no stored value is present.
+     */
+    private readonly initialValues: Record<string, unknown> = {},
   ) {
     this.fields = descriptors.map((descriptor) => this.buildField(descriptor));
     this.focusOrder = this.fields
@@ -59,24 +64,33 @@ export class FormView implements Component {
   }
 
   private buildField(descriptor: FieldDescriptor): FormField {
+    // Last-used value when present, otherwise the schema default.
+    const seed = this.seedFor(descriptor);
     if (descriptor.kind === "boolean") {
-      const value =
-        typeof descriptor.default === "boolean" ? descriptor.default : false;
+      const value = typeof seed === "boolean" ? seed : false;
       return { descriptor, boolValue: value, focusable: true };
     }
     if (descriptor.kind === "json") {
-      // JSON editor: a text input pre-filled with the default serialized as JSON.
+      // JSON editor: a text input pre-filled with the seed serialized as JSON.
       const input = new Input();
-      if (descriptor.default !== undefined) {
-        input.setValue(jsonString(descriptor.default));
+      if (seed !== undefined) {
+        input.setValue(jsonString(seed));
       }
       return { descriptor, input, focusable: true };
     }
     const input = new Input();
-    if (descriptor.default !== undefined) {
-      input.setValue(String(descriptor.default));
+    if (seed !== undefined) {
+      input.setValue(String(seed));
     }
     return { descriptor, input, focusable: true };
+  }
+
+  /** Resolve a field's initial value: stored last-used value, else default. */
+  private seedFor(descriptor: FieldDescriptor): unknown {
+    if (descriptor.key in this.initialValues) {
+      return this.initialValues[descriptor.key];
+    }
+    return descriptor.default;
   }
 
   // --- values ------------------------------------------------------------
