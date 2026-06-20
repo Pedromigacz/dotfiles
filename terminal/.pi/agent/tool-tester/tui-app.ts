@@ -1,10 +1,13 @@
 /**
- * tui-app — the walking-skeleton wizard controller.
+ * tui-app — the wizard controller.
  *
- * Full-screen two-step flow for this slice: a fuzzy-filterable tool list and a
- * raw result view. Selecting a tool runs it for real through tool-runner; the
- * result view dumps content text and stringified details (with an error flag).
- * Parameter entry and rich rendering are stubbed here and thickened later.
+ * Full-screen three-step flow: a fuzzy-filterable tool list, a generated
+ * parameter form, and a raw result view. Selecting a tool opens a form built
+ * from its schema (schema-form); submitting validates the entered values
+ * (validation) and, when valid, runs the tool for real through tool-runner with
+ * exactly those params. Invalid input is shown inline and blocks the run. The
+ * result view dumps content text and stringified details (with an error flag);
+ * rich rendering is thickened in a later slice.
  */
 
 import {
@@ -22,8 +25,11 @@ import { getSelectListTheme } from "@earendil-works/pi-coding-agent";
 
 import type { HarvestedTool } from "./tool-harvest";
 import { runTool, type ToolRunOutcome } from "./tool-runner";
+import { schemaToFields } from "./schema-form";
+import { validateParams } from "./validation";
+import { FormView } from "./form-view";
 
-type Step = "list" | "running" | "result";
+type Step = "list" | "form" | "running" | "result";
 
 /** Minimal ANSI styling — rich theming arrives with later slices. */
 const style = {
@@ -44,6 +50,9 @@ export class ToolTesterApp implements Component {
   private query = "";
   private readonly list: SelectList;
   private readonly byValue = new Map<string, HarvestedTool>();
+
+  private form?: FormView;
+  private currentTool?: HarvestedTool;
 
   private outcome?: ToolRunOutcome;
   private outcomeLabel = "";
@@ -68,7 +77,7 @@ export class ToolTesterApp implements Component {
     this.list = new SelectList(items, maxVisible, getSelectListTheme());
     this.list.onSelect = (item) => {
       const harvested = this.byValue.get(item.value);
-      if (harvested) void this.run(harvested);
+      if (harvested) this.openForm(harvested);
     };
     this.list.onCancel = () => this.quit();
   }
@@ -87,6 +96,8 @@ export class ToolTesterApp implements Component {
 
     if (this.step === "list") {
       this.handleListInput(data);
+    } else if (this.step === "form") {
+      this.form?.handleInput(data);
     } else if (this.step === "result") {
       this.handleResultInput(data);
     }
@@ -119,7 +130,8 @@ export class ToolTesterApp implements Component {
 
   private handleResultInput(data: string): void {
     if (matchesKey(data, Key.escape)) {
-      this.step = "list";
+      // Step back to the form (if any) so params can be tweaked and re-run.
+      this.step = this.form ? "form" : "list";
       this.outcome = undefined;
       this.resultScroll = 0;
       this.tui.requestRender();
@@ -134,13 +146,50 @@ export class ToolTesterApp implements Component {
     }
   }
 
-  private async run(harvested: HarvestedTool): Promise<void> {
+  /** Build a parameter form from the tool's schema and show the form step. */
+  private openForm(harvested: HarvestedTool): void {
+    this.currentTool = harvested;
+    const fields = schemaToFields(harvested.tool.parameters);
+    const form = new FormView(this.tui, fields);
+    form.onCancel = () => {
+      this.step = "list";
+      this.form = undefined;
+      this.currentTool = undefined;
+      this.tui.requestRender();
+    };
+    form.onSubmit = () => this.submitForm();
+    this.form = form;
+    this.step = "form";
+    this.tui.requestRender();
+  }
+
+  /** Validate the form's values; run on success, show inline errors otherwise. */
+  private submitForm(): void {
+    const form = this.form;
+    const tool = this.currentTool;
+    if (!form || !tool) return;
+
+    const result = validateParams(tool.tool.parameters, form.getValues());
+    if (!result.ok) {
+      form.setErrors(result.errors);
+      this.tui.requestRender();
+      return;
+    }
+    form.setErrors([]);
+    void this.run(tool, result.params);
+  }
+
+  private async run(
+    harvested: HarvestedTool,
+    params: unknown,
+  ): Promise<void> {
     this.step = "running";
     this.outcomeLabel = harvested.label;
     this.abort = new AbortController();
     this.tui.requestRender();
 
     const outcome = await runTool(harvested.tool, {
+      params,
       signal: this.abort.signal,
       onUpdate: () => this.tui.requestRender(),
     });
@@ -159,6 +208,7 @@ export class ToolTesterApp implements Component {
 
   invalidate(): void {
     this.list.invalidate();
+    this.form?.invalidate();
   }
 
   render(width: number): string[] {
@@ -167,6 +217,8 @@ export class ToolTesterApp implements Component {
 
     if (this.step === "list") {
       lines.push(...this.listLines(width));
+    } else if (this.step === "form") {
+      lines.push(...this.formLines(width));
     } else if (this.step === "running") {
       lines.push("");
       lines.push(style.accent(`Running ${this.outcomeLabel}…`));
@@ -196,6 +248,19 @@ export class ToolTesterApp implements Component {
     lines.push(...this.list.render(width));
     lines.push("");
     lines.push(style.dim("type to filter · ↑↓ move · enter run · esc quit"));
+    return lines;
+  }
+
+  private formLines(width: number): string[] {
+    const lines: string[] = [];
+    const tool = this.currentTool;
+    if (tool) {
+      lines.push(style.bold(tool.label));
+      const desc = tool.description.split("\n")[0];
+      if (desc) lines.push(style.muted(desc));
+    }
+    lines.push("");
+    if (this.form) lines.push(...this.form.render(width));
     return lines;
   }
 
