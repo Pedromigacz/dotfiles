@@ -23,6 +23,7 @@ import {
   wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import {
+  type AgentToolResult,
   getMarkdownTheme,
   getSelectListTheme,
 } from "@earendil-works/pi-coding-agent";
@@ -64,6 +65,8 @@ export class ToolTesterApp implements Component {
   private resultScroll = 0;
   private detailsExpanded = false;
   private abort?: AbortController;
+  /** Latest partial result streamed by an in-flight run, shown live. */
+  private partial?: AgentToolResult<unknown>;
 
   constructor(
     private readonly tui: TUI,
@@ -197,16 +200,24 @@ export class ToolTesterApp implements Component {
   ): Promise<void> {
     this.step = "running";
     this.outcomeLabel = harvested.label;
+    this.outcome = undefined;
+    this.partial = undefined;
     this.abort = new AbortController();
     this.tui.requestRender();
 
     const outcome = await runTool(harvested.tool, {
       params,
       signal: this.abort.signal,
-      onUpdate: () => this.tui.requestRender(),
+      // Stash each streamed partial so the running view re-renders it live.
+      onUpdate: (partial) => {
+        this.partial = partial;
+        this.tui.requestRender();
+      },
     });
 
     this.outcome = outcome;
+    this.partial = undefined;
+    this.abort = undefined;
     this.step = "result";
     this.resultScroll = 0;
     this.detailsExpanded = false;
@@ -233,8 +244,7 @@ export class ToolTesterApp implements Component {
     } else if (this.step === "form") {
       lines.push(...this.formLines(width));
     } else if (this.step === "running") {
-      lines.push("");
-      lines.push(style.accent(`Running ${this.outcomeLabel}…`));
+      lines.push(...this.runningLines(width, rows - lines.length));
     } else {
       lines.push(...this.resultLines(width, rows - lines.length));
     }
@@ -275,6 +285,45 @@ export class ToolTesterApp implements Component {
     lines.push("");
     if (this.form) lines.push(...this.form.render(width));
     return lines;
+  }
+
+  /**
+   * Render the in-flight run: a status/cancel line plus any partial content the
+   * tool has streamed so far via its update callback. When the streamed output
+   * overflows the viewport its tail is shown, so the latest progress stays
+   * visible. Tools that never stream simply show the status line.
+   */
+  private runningLines(width: number, budget: number): string[] {
+    const header = [
+      "",
+      `${style.accent(`Running ${this.outcomeLabel}…`)}  ${style.dim(
+        "ctrl+c cancel",
+      )}`,
+      "",
+    ];
+
+    const partial = this.partial;
+    if (!partial) return header;
+
+    const model = formatResult({
+      content: partial.content,
+      details: partial.details,
+      isError: false,
+      durationMs: 0,
+    });
+
+    const body: string[] = [];
+    for (const segment of model.content) {
+      if (segment.kind === "markdown") {
+        body.push(...renderMarkdown(segment.text, width));
+      } else {
+        body.push(style.muted(segment.placeholder));
+      }
+    }
+
+    const viewport = Math.max(1, budget - header.length);
+    const tail = body.length > viewport ? body.slice(body.length - viewport) : body;
+    return [...header, ...tail];
   }
 
   private resultLines(width: number, budget: number): string[] {
