@@ -78,10 +78,14 @@ export class ToolTesterApp implements Component {
   ) {
     const items: SelectItem[] = tools.map((t) => {
       this.byValue.set(t.name, t);
+      // Front-load the source badge so the resolved origin (and any shadowed
+      // collision) stays visible even when the description is truncated.
+      const badge = sourceBadge(t);
+      const desc = t.description.split("\n")[0];
       return {
         value: t.name,
         label: t.label === t.name ? t.name : `${t.label} (${t.name})`,
-        description: t.description.split("\n")[0],
+        description: desc ? `${badge}  ${desc}` : badge,
       };
     });
 
@@ -288,7 +292,7 @@ export class ToolTesterApp implements Component {
     const lines: string[] = [];
     const tool = this.currentTool;
     if (tool) {
-      lines.push(style.bold(tool.label));
+      lines.push(`${style.bold(tool.label)}  ${style.muted(sourceBadge(tool))}`);
       const desc = tool.description.split("\n")[0];
       if (desc) lines.push(style.muted(desc));
     }
@@ -380,6 +384,18 @@ export class ToolTesterApp implements Component {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * A compact source indicator for a tool: its resolved origin, and — on a name
+ * collision — the other source it shadows, so the collision is never silently
+ * hidden behind the resolved tool.
+ */
+function sourceBadge(tool: HarvestedTool): string {
+  if (tool.shadowedSource) {
+    return `[${tool.source} · shadows ${tool.shadowedSource}]`;
+  }
+  return `[${tool.source}]`;
 }
 
 function isPrintable(data: string): boolean {

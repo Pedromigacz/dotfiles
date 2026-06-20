@@ -10,10 +10,15 @@
 
 import {
   createAgentSession,
+  createCodingTools,
+  createReadOnlyTools,
   getAgentDir,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
+
+/** Where a resolved tool came from: a pi built-in or a local extension. */
+export type ToolSource = "built-in" | "extension";
 
 /** A discovered tool plus its display metadata. */
 export interface HarvestedTool {
@@ -21,6 +26,40 @@ export interface HarvestedTool {
   name: string;
   label: string;
   description: string;
+  /** Origin of the tool the session actually resolved for this name. */
+  source: ToolSource;
+  /**
+   * The other source that also defines this name but was shadowed by the
+   * resolved tool. Set only on name collisions (e.g. an extension `read`
+   * overriding the built-in `read`); `undefined` when the name is unique.
+   */
+  shadowedSource?: ToolSource;
+}
+
+/**
+ * Attribute a resolved tool to a source and detect a shadowed collision.
+ *
+ * A name present in the extension set is resolved to the extension (extensions
+ * take precedence over built-ins); otherwise it is a built-in. When both sets
+ * define the name, the resolved tool shadows the one from the other source.
+ */
+function attributeSource(
+  name: string,
+  extensionNames: Set<string>,
+  builtinNames: Set<string>,
+): Pick<HarvestedTool, "source" | "shadowedSource"> {
+  const inExtension = extensionNames.has(name);
+  const inBuiltin = builtinNames.has(name);
+  const source: ToolSource = inExtension ? "extension" : "built-in";
+  const collides = inExtension && inBuiltin;
+  return {
+    source,
+    shadowedSource: collides
+      ? source === "extension"
+        ? "built-in"
+        : "extension"
+      : undefined,
+  };
 }
 
 export interface HarvestResult {
@@ -37,17 +76,28 @@ export interface HarvestResult {
 export async function harvestTools(
   cwd: string = process.cwd(),
 ): Promise<HarvestResult> {
-  const { session } = await createAgentSession({
+  const { session, extensionsResult } = await createAgentSession({
     cwd,
     agentDir: getAgentDir(),
     sessionManager: SessionManager.inMemory(cwd),
   });
+
+  // Names the extensions register (the source of truth for "extension" tools)
+  // and the names pi ships as built-ins, used to label each resolved tool and
+  // flag collisions where one source shadows the other.
+  const extensionNames = new Set(
+    extensionsResult.runtime.getAllTools().map((t) => t.name),
+  );
+  const builtinNames = new Set(
+    [...createCodingTools(cwd), ...createReadOnlyTools(cwd)].map((t) => t.name),
+  );
 
   const tools: HarvestedTool[] = session.agent.state.tools.map((tool) => ({
     tool,
     name: tool.name,
     label: tool.label ?? tool.name,
     description: tool.description ?? "",
+    ...attributeSource(tool.name, extensionNames, builtinNames),
   }));
 
   return {
