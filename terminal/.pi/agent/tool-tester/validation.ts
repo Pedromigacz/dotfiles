@@ -109,7 +109,10 @@ export function validateParams(
 function collectErrors(schema: TSchema, value: unknown): FieldError[] {
   const errors: FieldError[] = [];
   for (const e of Value.Errors(schema, value)) {
-    if (e.keyword === "required") {
+    // A missing top-level property (instancePath "") names the field directly;
+    // nested violations (e.g. inside a JSON-fallback array) scope to the
+    // top-level field from the path so the error renders next to that widget.
+    if (e.keyword === "required" && e.instancePath === "") {
       const missing =
         (e.params as { requiredProperties?: string[] }).requiredProperties ?? [];
       for (const key of missing) {

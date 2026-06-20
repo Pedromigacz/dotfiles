@@ -78,23 +78,46 @@ describe("validateParams", () => {
     if (result.ok) expect(result.params.raw).toBe(true);
   });
 
-  test("parses a JSON-fallback field and reports malformed JSON", () => {
-    const schema = Type.Object({
-      path: Type.String(),
-      edits: Type.Array(Type.Object({ oldText: Type.String() })),
+  const EDIT = Type.Object({
+    path: Type.String(),
+    edits: Type.Array(
+      Type.Object({ oldText: Type.String(), newText: Type.String() }),
+    ),
+  });
+
+  test("parses a valid JSON-fallback field into its structured value", () => {
+    const result = validateParams(EDIT, {
+      path: "a.ts",
+      edits: '[{"oldText":"x","newText":"y"}]',
     });
 
-    const ok = validateParams(schema, {
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.params.edits).toEqual([{ oldText: "x", newText: "y" }]);
+    }
+  });
+
+  test("reports malformed JSON scoped to the fallback field", () => {
+    const result = validateParams(EDIT, { path: "a.ts", edits: "[not json" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      const edits = result.errors.find((e) => e.key === "edits");
+      expect(edits).toBeDefined();
+      expect(edits?.message).toContain("invalid JSON");
+    }
+  });
+
+  test("reports JSON that violates the field's sub-schema, scoped to the field", () => {
+    // Valid JSON, but each edit is missing the required `newText`.
+    const result = validateParams(EDIT, {
       path: "a.ts",
       edits: '[{"oldText":"x"}]',
     });
-    expect(ok.ok).toBe(true);
-    if (ok.ok) expect(ok.params.edits).toEqual([{ oldText: "x" }]);
 
-    const bad = validateParams(schema, { path: "a.ts", edits: "[not json" });
-    expect(bad.ok).toBe(false);
-    if (!bad.ok) {
-      expect(bad.errors.map((e) => e.key)).toContain("edits");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.map((e) => e.key)).toContain("edits");
     }
   });
 });

@@ -1,11 +1,11 @@
 /**
  * form-view — the generated parameter form (slice 02).
  *
- * Renders one type-appropriate widget per primitive schema field: a text input
- * for string / number / integer, a toggle for boolean. Each field shows its
- * required marker, description, and pre-filled default, plus any inline
- * validation error. Non-primitive fields are shown as not-yet-supported (the
- * JSON-fallback editor arrives in slice 03).
+ * Renders one type-appropriate widget per schema field: a text input for
+ * string / number / integer, a toggle for boolean, and a JSON editor for
+ * non-primitive fields (array / object / union / etc.) — a single text input
+ * pre-filled with the default serialized as JSON. Each field shows its required
+ * marker, description, and pre-filled default, plus any inline validation error.
  *
  * This is terminal glue — wiring the schema-form descriptors to `pi-tui` widgets
  * and collecting their values for the validation module. It owns no validation
@@ -29,11 +29,11 @@ const style = {
 
 interface FormField {
   descriptor: FieldDescriptor;
-  /** Text input for string / number / integer; undefined for boolean / json. */
+  /** Text input for string / number / integer / json; undefined for boolean. */
   input?: Input;
   /** Current value for boolean fields. */
   boolValue?: boolean;
-  /** Whether the user can focus and edit this field. json fields cannot. */
+  /** Whether the user can focus and edit this field. */
   focusable: boolean;
 }
 
@@ -65,8 +65,12 @@ export class FormView implements Component {
       return { descriptor, boolValue: value, focusable: true };
     }
     if (descriptor.kind === "json") {
-      // Not editable in this slice — shown as not-yet-supported.
-      return { descriptor, focusable: false };
+      // JSON editor: a text input pre-filled with the default serialized as JSON.
+      const input = new Input();
+      if (descriptor.default !== undefined) {
+        input.setValue(jsonString(descriptor.default));
+      }
+      return { descriptor, input, focusable: true };
     }
     const input = new Input();
     if (descriptor.default !== undefined) {
@@ -81,7 +85,6 @@ export class FormView implements Component {
   getValues(): Record<string, unknown> {
     const values: Record<string, unknown> = {};
     for (const field of this.fields) {
-      if (!field.focusable) continue; // json: omitted this slice
       values[field.descriptor.key] =
         field.input !== undefined ? field.input.getValue() : field.boolValue;
     }
@@ -198,11 +201,17 @@ export class FormView implements Component {
     if (field.input) {
       return field.input.render(width - 2).map((l) => "  " + l);
     }
-    if (field.descriptor.kind === "boolean") {
-      const on = field.boolValue;
-      const box = on ? "[x]" : "[ ]";
-      return ["  " + `${box} ${on ? "true" : "false"}`];
-    }
-    return ["  " + style.muted("non-primitive — JSON editor coming in slice 03")];
+    const on = field.boolValue;
+    const box = on ? "[x]" : "[ ]";
+    return ["  " + `${box} ${on ? "true" : "false"}`];
+  }
+}
+
+/** Serialize a default value to a single-line JSON string for the editor. */
+function jsonString(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return "";
   }
 }

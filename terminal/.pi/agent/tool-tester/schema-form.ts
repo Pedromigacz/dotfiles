@@ -5,8 +5,8 @@
  * Each descriptor carries the field's key, widget kind (string / number /
  * integer / boolean), required flag, description, and default. Non-primitive
  * fields (array / object / union / etc.) are marked with the `json` kind and
- * carry their sub-schema, so the form can fall back to a JSON editor for them
- * (slice 03); this slice renders them as not-yet-supported.
+ * carry their sub-schema, so the form renders a JSON editor for them and
+ * validation checks the entered JSON against that sub-schema.
  *
  * Pure and dependency-light: it reads the schema's structure only, so it is
  * testable with plain TypeBox schemas and no terminal or live session.
