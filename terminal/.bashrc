@@ -9,3 +9,6 @@ source ~/.local/share/omarchy/default/bash/rc
 
 # codeburn — TUI dashboard for Claude Code token/cost usage (reads ~/.claude/projects/)
 alias codeburn='npx -y codeburn@latest'
+
+# tooltest — standalone TUI for invoking pi's tools directly (launch dir becomes its cwd)
+alias tooltest='bun ~/.pi/agent/tool-tester/index.ts'
