@@ -3,10 +3,12 @@
   "permissions": {
     "defaultMode": "acceptEdits"
   },
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@latest"
   },
+  "tui": "fullscreen",
   "autoMemoryEnabled": false,
   "skipAutoPermissionPrompt": true
 }
