@@ -12,8 +12,11 @@ fi
 # Get current Firefox window addresses
 before=$(hyprctl clients -j | jq -r '[.[] | select(.class == "firefox") | .address] | sort | join("\n")')
 
-# Launch Firefox
-setsid firefox -P "$PROFILE" --new-window "$URL" &
+# Launch Firefox against a fixed profile directory. Using --profile with an
+# absolute path (instead of -P "$PROFILE") pins the profile to
+# ~/.mozilla/firefox/profile.<name> so Firefox's profile manager can't relocate
+# it to a random directory, keeping the stowed user.js/userChrome.css in effect.
+setsid firefox --profile "$HOME/.mozilla/firefox/profile.$PROFILE" --new-window "$URL" &
 
 # Wait for new window to appear (max 10 seconds)
 for i in {1..100}; do
