@@ -1,35 +1,269 @@
-/* 2) Make the navigation bar extremely thin */
+/* ============================================================
+ * One-line layout: url bar and tabs share a single thin bar
+ * ============================================================ */
+:root {
+  --uc-toolbar-height: 26px;
+  --uc-navbar-width: 40vw; /* portion of the row used by the nav bar */
+}
+
+/* Show the tab bar again and shift it right, leaving room for the nav bar */
+#TabsToolbar {
+  visibility: visible !important;
+  margin-left: var(--uc-navbar-width) !important;
+  --tabs-navbar-separator-style: none;
+}
+
+/* Pull the nav bar up onto the tab row, occupying the left side */
 #nav-bar {
-  min-height: 24px !important;        /* overall bar height */
-  max-height: 24px !important;
-  padding-block: 0 !important;        /* remove vertical padding */
+  margin-top: calc(0px - var(--uc-toolbar-height)) !important;
+  margin-right: calc(100vw - var(--uc-navbar-width)) !important;
 }
 
-/* Reduce padding of items in the nav bar (buttons + urlbar) */
-#nav-bar .toolbarbutton-1,
-#nav-bar #urlbar-container,
-#nav-bar #urlbar {
+#TabsToolbar,
+#nav-bar {
+  min-height: var(--uc-toolbar-height) !important;
+  max-height: var(--uc-toolbar-height) !important;
   padding-block: 0 !important;
-  margin-block: 0 !important;
 }
 
-/* Optional: slightly shrink icon size */
-#nav-bar .toolbarbutton-icon {
-  width: 14px !important;
-  height: 14px !important;
+/* No shadow/separator line between the overlapped bars */
+#navigator-toolbox {
+  --tabs-navbar-shadow-size: 0px;
+  border-bottom: none !important;
 }
 
-/* hide tab bar */
-#TabsToolbar { visibility: collapse !important; }
+/* ============================================================
+ * Flat chrome: paint the whole bar one color. Stock Firefox
+ * gives the tab strip the darker titlebar color and the nav bar
+ * the lighter toolbar color; paint the toolbox once and make
+ * both bars transparent so the seam disappears.
+ * ============================================================ */
+#navigator-toolbox {
+  background-color: var(--toolbar-bgcolor) !important;
+  background-image: none !important;
+}
+#TabsToolbar,
+#nav-bar {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+/* Firefox also draws a 1px vertical rule (::before with
+ * --tabstrip-inner-border) at the start of the tab strip — the
+ * "line between the two sections" */
+#tabbrowser-tabs[orient="horizontal"]::before {
+  content: none !important;
+}
 
-/* hide bookmarks */
-#star-button-box { display: none !important; }
+/* ============================================================
+ * Compact tabs that fit the thin bar.
+ * Firefox derives --tabstrip-min-height from these at :root, so
+ * they must be overridden at :root — a subtree override on
+ * #tabbrowser-tabs never reaches the strip. --tab-label-height
+ * defaults to 2.7em (two-line labels) and would force the tab
+ * taller than the bar.
+ * ============================================================ */
+:root {
+  /* 20px tabs with 3px above and below — the same box the urlbar and
+   * chrome buttons use, so everything in the bar shares one height */
+  --tab-min-height: calc(var(--uc-toolbar-height) - 6px) !important;
+  --tab-block-margin: 3px !important;
+  --tab-label-height: 1.5em !important;
+}
+#TabsToolbar > .toolbar-items {
+  overflow: hidden;
+}
+.tabbrowser-tab {
+  font-size: 11px !important;
+  /* the visible tab (.tab-background) is inset by this padding, so
+   * 1px per side makes adjacent tabs sit 2px apart — the same gap
+   * the chrome buttons use */
+  padding-inline: 1px !important;
+}
+/* Tabs stand out against the now-flat bar: every tab gets its own
+ * tint (currentColor mixes keep it working in light and dark) */
+.tab-background {
+  border-radius: 2px !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  background-color: color-mix(in srgb, currentColor 7%, transparent) !important;
+}
+.tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected], [multiselected]) {
+  background-color: color-mix(in srgb, currentColor 13%, transparent) !important;
+}
+.tab-background[selected],
+.tab-background[multiselected] {
+  background-color: color-mix(in srgb, currentColor 22%, transparent) !important;
+}
+/* Favicon: stock 16px nearly fills the 20px tab; 12px matches the
+ * other chrome icons (the throbber shares the slot while loading) */
+.tabbrowser-tab .tab-icon-image,
+.tabbrowser-tab .tab-throbber {
+  width: 12px !important;
+  height: 12px !important;
+}
+/* Tab close button: shrink the stock 24px hit-box to 16px so it
+ * sits evenly inside the 20px tab — 2px gap above and below */
+.tab-close-button {
+  width: 16px !important;
+  height: 16px !important;
+  padding: 2px !important;
+  margin-inline-end: -5px !important;
+  border-radius: 2px !important;
+}
 
-/* hide sidebar */
-#sidebar-button { display: none !important; }
+/* ============================================================
+ * Hide chrome that has no place in a web-app window:
+ * Firefox View, all-tabs chevron, titlebar spacers, extension
+ * and PiP buttons, bookmarks star, sidebar
+ * ============================================================ */
+#firefox-view-button,
+#alltabs-button,
+.titlebar-spacer,
+#unified-extensions-button,
+#picture-in-picture-button,
+#fxa-toolbar-menu-button,
+#star-button-box,
+#sidebar-button {
+  display: none !important;
+}
 
-/* urlbar styles */
-#urlbar,
+/* Let the urlbar shrink: stock Firefox gives the container a fixed
+ * width (--urlbar-container-min-width plus room for two buttons)
+ * with flex-shrink 0 — harmless in a full-width toolbar, but in our
+ * 40vw nav bar that fixed width overflows underneath the hamburger
+ * button and past the bar's edge */
+#urlbar-container {
+  min-width: 0 !important;
+  width: auto !important;
+  flex-shrink: 1 !important;
+  /* stock 5px start margin would stack onto the reload button's 3px
+   * end margin; drop it so the urlbar sits a button-gap away */
+  margin-inline-start: 0 !important;
+  padding-inline-start: 0 !important;
+  /* stock 5px end margin; 1px here + the first tab's 1px side
+   * padding = the same 2px gap between the urlbar and the first tab */
+  margin-inline-end: 1px !important;
+}
+/* The default toolbar layout flanks the urlbar with flexible
+ * springs; in the narrow bar they just eat width, so drop them and
+ * let the urlbar span from the reload button to the hamburger */
+#nav-bar toolbarspring,
+#nav-bar toolbarspacer {
+  display: none !important;
+}
+
+/* ============================================================
+ * Chrome buttons (back/forward/reload, hamburger, new-tab "+",
+ * window controls): identical 20px box (urlbar height) / 4px
+ * padding / 12px icon / 2px radius, centered with 3px above and
+ * below in the 26px bar, and a 2px gap between neighbours
+ * ============================================================ */
+/* one hover/active color for every button, regardless of which
+ * variable system it uses */
+#navigator-toolbox {
+  --toolbarbutton-hover-background: color-mix(
+    in srgb,
+    currentColor 13%,
+    transparent
+  ) !important;
+  --toolbarbutton-active-background: color-mix(
+    in srgb,
+    currentColor 25%,
+    transparent
+  ) !important;
+}
+/* 2px from the window's left edge, matching the inter-button gap */
+#nav-bar {
+  padding-inline: 2px 0 !important;
+}
+#nav-bar .toolbarbutton-1,
+#tabs-newtab-button,
+#TabsToolbar #new-tab-button {
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-inline-end: 2px !important;
+}
+/* New-tab "+": the last tab's 1px side padding + this 1px start
+ * margin = the same 2px gap as everywhere else */
+#tabs-newtab-button,
+#TabsToolbar #new-tab-button {
+  margin-inline-start: 1px !important;
+}
+/* The hamburger lives after the urlbar in the markup; order it
+ * before the customization target so it sits at the bar's start,
+ * left of the search bar */
+#PanelUI-button {
+  order: -1 !important;
+  margin-inline: 0 !important;
+  border-inline-start: none !important;
+}
+/* Its menu is hardcoded to right-align with the button
+ * (position="bottomright topright"), which would fly out leftward
+ * now that the button sits at the far left. XUL mirrors popup
+ * alignment when the *anchor* is RTL, so this flips the menu to
+ * open rightward (the panel itself doesn't inherit from the anchor,
+ * so its content stays ltr). */
+#nav-bar #PanelUI-menu-button {
+  direction: rtl;
+  /* rtl flips the logical end margin to the left side; pin it back */
+  margin: 0 2px 0 0 !important;
+}
+#nav-bar .toolbarbutton-1 > .toolbarbutton-icon,
+#nav-bar .toolbarbutton-1 > .toolbarbutton-badge-stack,
+#tabs-newtab-button > .toolbarbutton-icon,
+#TabsToolbar #new-tab-button > .toolbarbutton-icon {
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  border-radius: 2px !important;
+  background-color: transparent;
+}
+/* icon nested inside a badge stack (e.g. the hamburger when it
+ * carries a notification badge) must shrink with the stack */
+#nav-bar .toolbarbutton-1 .toolbarbutton-badge-stack > .toolbarbutton-icon {
+  width: 12px !important;
+  height: 12px !important;
+  padding: 0 !important;
+}
+
+/* Window-control buttons: GTK styles them as 24px circles with
+ * their own resting background; fold them into the same grid.
+ * The spacing vars are per-side padding, so 1px gives a 2px gap
+ * between adjacent buttons and end-spacing keeps 2px to the edge. */
+.titlebar-buttonbox {
+  --titlebar-button-size: 20px !important;
+  --titlebar-button-spacing: 1px !important;
+  --titlebar-button-end-spacing: 2px !important;
+}
+.titlebar-button > .toolbarbutton-icon {
+  border-radius: 2px !important;
+  background-size: 12px !important;
+  background-color: transparent !important;
+}
+.titlebar-button:hover > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, currentColor 13%, transparent) !important;
+}
+.titlebar-button:hover:active > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, currentColor 25%, transparent) !important;
+}
+/* The close button gets a reddish tint (these rules tie with the
+ * generic ones on specificity, so they must come after to win) */
+.titlebar-button.titlebar-close > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, #e81123 15%, transparent) !important;
+}
+.titlebar-button.titlebar-close:hover > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, #e81123 40%, transparent) !important;
+}
+.titlebar-button.titlebar-close:hover:active > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, #e81123 55%, transparent) !important;
+}
+
+/* ============================================================
+ * URL bar
+ * ============================================================ */
+/* Only clamp the closed urlbar; [open] must grow for the dropdown */
+#urlbar:not([open]),
 #urlbar-input-container {
   min-height: 20px !important;
   max-height: 20px !important;
@@ -40,38 +274,200 @@
   font-size: 11px !important;
 }
 
-#urlbar-container {
-  --toolbarbutton-border-radius: 2px !important;
-  --urlbar-inner-border-radius: 2px !important;
+/* square-ish corners; the open (dropdown) background normally swaps to
+ * a much rounder --urlbarview-border-radius, so pin that token too */
+#urlbar {
+  --urlbar-border-radius: 2px !important;
+  --urlbarview-border-radius: 2px !important;
+}
+#urlbar-background {
+  border-radius: 2px !important;
 }
 
-#tracking-protection-icon-box,
-#identity-icon-box {
-  place-items: center !important;
+/* Focused-urlbar dropdown: stock "breakout" grows the open bar 5px past
+ * each side and inflates the input row to the toolbar's full height, so
+ * the overlay pops out on the top and sides. Pin the open bar to the
+ * closed bar's exact box so the results panel only extends downward,
+ * flush with the search bar's edges */
+#urlbar[breakout][breakout-extend] {
+  /* JS pins the open bar to the toolbar's top edge with an inline
+   * `top: 0px`; put it back where the closed bar sits */
+  top: calc((var(--urlbar-container-height) - var(--urlbar-height)) / 2) !important;
+  margin-left: 0 !important;
+  width: var(--urlbar-width) !important;
+}
+#urlbar[breakout][breakout-extend] > .urlbar-input-container {
+  height: var(--urlbar-height) !important;
+  padding: var(--urlbar-container-padding) !important;
+}
+
+/* Search-engine switcher (engine icon + chevron at the urlbar start):
+ * a moz-button whose real <button> lives in shadow DOM, drawn as a
+ * ~8px-radius pill. userChrome.css rules can't match ::part() inside
+ * that shadow root, but the button reads its geometry from custom
+ * properties, which do inherit through — pin them to the same 16px
+ * box / 2px padding / 2px radius / 12px icon as the bar's buttons */
+.searchmode-switcher {
+  min-height: 0 !important;
+  /* stock leaves the host at height:auto and its innards settle at
+   * 18px; pin the whole button (host → shadow button → background
+   * span, each 100% tall) to the shared 16px box */
+  height: 16px !important;
+  align-self: center !important;
+  margin-block: 0 !important;
+  --icon-size: 12px !important;
+  --button-border-radius: 2px !important;
+  --button-min-height: 16px !important;
+  --button-min-height-small: 16px !important;
+  /* the icon-button variant hard-sizes its background span with these */
+  --button-size-icon: 16px !important;
+  --button-size-icon-small: 16px !important;
+  /* stock draws a 1px transparent border that fattens the box to 18px */
+  --button-border: none !important;
+  --button-padding: 2px !important;
+  --button-padding-icon: 2px !important;
+  /* the "small" button variant pads its block axis with this token */
+  --space-xxsmall: 2px !important;
+  /* the label's inherited 15px font opens an 18px line box around the
+   * 12px icons; shrink it so the button closes at 16px */
+  font-size: 11px !important;
+  line-height: 1 !important;
+}
+
+/* Its dropdown (the engine list): the panel's rounding comes from
+ * --panel-border-radius on the XUL panel, the list and its rows from
+ * panel-list/panel-item shadow styles fed by the tokens below. Match
+ * the bar: 2px radius and compact 11px rows (stock is 8px radius,
+ * ~15px text on 34px rows) */
+.searchmode-switcher-panel {
+  --panel-border-radius: 2px !important;
+}
+.searchmode-switcher-panel-list {
+  border-radius: 2px !important;
+  padding-block: 2px !important;
+  font-size: 11px !important;
+  /* the rows (panel-item buttons) are laid out by a stock ::part rule
+   * driven by these tokens — stock 8px padding / 4px radius / 0 8px
+   * margin; tighten to the bar's 2px system (the start padding gets
+   * +22px on top of the inline token for the engine favicon) */
+  --panel-menuitem-padding: 3px 6px !important;
+  --panel-menuitem-padding-inline: 6px !important;
+  --panel-menuitem-margin: 0 2px !important;
+  --menuitem-border-radius: 2px !important;
+}
+
+/* Trust-panel icon (the shield-like pentagon in the urlbar — with
+ * browser.urlbar.trustPanel.featureGate it replaces the identity and
+ * tracking-protection icons): Firefox gives the container
+ * height 16px + 2*padding (~28px), overflowing the 20px urlbar.
+ * Pin it to the same 16px box / 2px padding / 12px icon as the tab
+ * close button; the hover square is the container itself. Width is
+ * left auto so the "Not secure" label still fits on http pages. */
+#trust-icon-container {
+  height: 16px !important;
+  min-height: 16px !important;
+  padding: 2px !important;
+  border-radius: 2px !important;
+  align-self: center !important;
+  align-items: center !important;
+}
+#trust-icon {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Identity / tracking-protection icons: size any icon in the boxes
+ * (element ids change between versions) and center the contents */
+#identity-box,
+#identity-icon-box,
+#tracking-protection-icon-container {
+  align-items: center !important;
   justify-content: center !important;
+  padding-block: 0 !important;
 }
 
 #identity-icon-box,
 #tracking-protection-icon-container {
-  cursor: pointer;  
+  cursor: pointer;
+  padding-inline: 2px !important;
 }
 
-#identity-icon-box,
-#tracking-protection-icon-container,
 #identity-box {
-  width: 16px !important;
-  height: 16px !important;
+  margin-inline: 1px 4px !important;
+}
+
+#identity-box image,
+#tracking-protection-icon-container image {
+  width: 12px !important;
+  height: 12px !important;
   padding: 0 !important;
-  padding-inline: 0 !important;
 }
 
+/* Permission pill, notification anchors, and page actions (reader
+ * mode, zoom, …): stock Firefox draws them as ~28px pills (7px
+ * radius, chunky padding). Pin them to the same 16px box / 2px
+ * padding / 2px radius / 12px icon as the secure-connection button;
+ * the hover square is the box itself, so hover matches too. */
+#identity-permission-box,
+#notification-popup-box,
+.urlbar-page-action {
+  height: 16px !important;
+  min-height: 16px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 2px !important;
+  border-radius: 2px !important;
+  align-self: center !important;
+  align-items: center !important;
+}
+/* Stock spaces these icons with per-icon start margins, but the
+ * webRTC notification anchors (camera/mic during an active call)
+ * have none and sit flush against their neighbours. The icons live
+ * at two nesting levels (plain images plus sharing/blocked
+ * sub-boxes), so give every level the same flex gap and drop the
+ * per-icon margins */
+#identity-permission-box,
+#identity-permission-box > box,
+#notification-popup-box {
+  gap: 4px !important;
+}
+#identity-permission-box image,
+#notification-popup-box image {
+  margin: 0 !important;
+}
+/* A sub-box whose icons are all hidden still occupies a gap slot,
+ * which would double the gap around it; hide it outright */
+#identity-permission-box > box:not(:has([sharing], [showing])) {
+  display: none !important;
+}
+/* The permission cluster and the notification anchors are separate
+ * hover boxes; keep the bar's standard 2px gap between them */
 #identity-box {
-  margin-left: 1px !important;
-  margin-right: 4px !important; /* Firefox não respeita isso */
+  gap: 2px !important;
+}
+#identity-permission-box image,
+#notification-popup-box image,
+.urlbar-page-action .urlbar-icon {
+  width: 12px !important;
+  height: 12px !important;
+  padding: 0 !important;
+}
+/* The zoom indicator is a text pill; give it the same height,
+ * radius and hover square, with room for its "110%" label */
+#urlbar-zoom-button {
+  height: 16px !important;
+  min-height: 16px !important;
+  padding: 0 4px !important;
+  border-radius: 2px !important;
+  align-self: center !important;
+  /* stock 6px end margin + the container's 2px padding left it 8px
+   * from the urlbar's edge; keep just the container padding so the
+   * right gap matches the 2px above and below */
+  margin: 0 !important;
+  margin-inline-start: 6px !important;
 }
 
-#tracking-protection-icon,
-#identity-icon {
-  width: 11px !important;
-  height: 11px !important;
+#urlbar-input-container > *,
+#identity-box > * {
+  max-height: 20px !important;
 }
