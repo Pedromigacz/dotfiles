@@ -471,3 +471,14 @@
 #identity-box > * {
   max-height: 20px !important;
 }
+
+/* PWAs run in Firefox-fullscreen (the launcher's `fullscreenstate 0 2`),
+ * so the toolbar auto-hides. Clicking the engine switcher re-triggers the
+ * hide before its dropdown registers as open, collapsing the bar (inline
+ * `margin-top: -26px`) while the dropdown floats detached. While the
+ * dropdown is open, focus sits on the switcher button — and any focus
+ * inside the toolbox (urlbar overlay included) is a moment the bar should
+ * stay put — so pin it whenever the toolbox holds focus */
+:root[inFullscreen] #navigator-toolbox:focus-within {
+  margin-top: 0 !important;
+}
