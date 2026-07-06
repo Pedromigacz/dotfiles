@@ -2,7 +2,10 @@
 set -euo pipefail
 
 BINARY_NAME="firefox-pwa"
-INSTALL_DIR="$HOME/.local/bin"
+# Must live in omarchy's bin: walker/elephant run with the systemd user PATH,
+# which contains ~/.local/share/omarchy/bin but NOT ~/.local/bin, so a copy
+# in ~/.local/bin is invisible to apps launched from the omarchy menu.
+INSTALL_DIR="$HOME/.local/share/omarchy/bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE="$SCRIPT_DIR/$BINARY_NAME"
 FIREFOX_PROFILE_NAME="pwas"
@@ -30,6 +33,13 @@ echo "Installed: $INSTALL_DIR/$BINARY_NAME"
 # Warn if not in PATH
 if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
   echo "Warning: '$INSTALL_DIR' is not in your PATH."
+fi
+
+# Drop the copy older versions of this script left in ~/.local/bin so a stale
+# binary can't shadow the installed one in interactive shells
+if [[ -f "$HOME/.local/bin/$BINARY_NAME" ]]; then
+  rm "$HOME/.local/bin/$BINARY_NAME"
+  echo "Removed stale: $HOME/.local/bin/$BINARY_NAME"
 fi
 
 # Create Firefox profile "pwas" if it doesn't already exist

@@ -1,0 +1,6 @@
+# Stowed Firefox profile dirs are symlinked from ~/.mozilla/firefox, so
+# Firefox writes runtime state (prefs.js, *.sqlite, caches) straight into
+# the repo; only the files we deliberately track belong in git.
+firefox/.mozilla/firefox/profile.*/*
+!firefox/.mozilla/firefox/profile.*/user.js
+!firefox/.mozilla/firefox/profile.*/chrome

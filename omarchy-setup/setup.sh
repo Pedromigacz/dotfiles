@@ -202,6 +202,16 @@ main() {
     refresh)   CHANGED=1; step_refresh ;;
     all)
       step_install
+      # Removals run only after a clean install. A failed install can mean a
+      # replacement package (e.g. the terminal that supersedes another) never
+      # landed; tearing down its predecessor anyway would strand the system
+      # with no working component. Abort before any removal if install failed.
+      if ((${#FAILURES[@]} > 0)); then
+        echo
+        echo -e "\e[31mInstall step failed; skipping removals so a package isn't torn down before its replacement is installed.\e[0m" >&2
+        printf '  - %s\n' "${FAILURES[@]}" >&2
+        exit 1
+      fi
       step_remove
       step_pre_stow
       step_stow

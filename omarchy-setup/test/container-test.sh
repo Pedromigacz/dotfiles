@@ -57,7 +57,7 @@ check "~/.bashrc stowed" test "$(readlink -f "$HOME/.bashrc")" = "$HOME/dotfiles
 check "~/.config/nvim stowed (stock config replaced)" test "$(readlink -f "$HOME/.config/nvim")" = "$HOME/dotfiles/terminal/.config/nvim"
 check "pwastuis desktop entries stowed" test -e "$HOME/.local/share/applications/WhatsApp.desktop"
 check "nvim theme linked to omarchy theme" test "$(readlink "$HOME/.config/nvim/lua/plugins/theme.lua")" = "$HOME/.config/omarchy/current/theme/neovim.lua"
-check "firefox-pwa installed" test -x "$HOME/.local/bin/firefox-pwa"
+check "firefox-pwa installed" test -x "$HOME/.local/share/omarchy/bin/firefox-pwa"
 check "omarchy-launch-webapp patched" same_content "$HOME/.local/share/omarchy/bin/omarchy-launch-webapp" "$SETUP_DIR/patch-omarchy/omarchy-launch-webapp"
 check "omarchy nvim themes patched" grep -q 'colorscheme("tokyonight' "$HOME/.local/share/omarchy/themes/tokyo-night/neovim.lua"
 

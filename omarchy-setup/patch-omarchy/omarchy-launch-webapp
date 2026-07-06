@@ -17,6 +17,7 @@ google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium* | chromi
   exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "${@:2}"
   ;;
 *)
-  exec firefox-pwa pwas "$1"
+  # Absolute path: walker/elephant launch with a PATH that lacks user bin dirs
+  exec "$HOME/.local/share/omarchy/bin/firefox-pwa" pwas "$1"
   ;;
 esac
