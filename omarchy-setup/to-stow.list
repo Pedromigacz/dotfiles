@@ -1,9 +1,4 @@
-git
-ghostty
-nvim
-tmux
-starship
-bash
+# Stow packages (top-level dirs of this repo) to link into $HOME
+terminal
 firefox
 pwastuis
-

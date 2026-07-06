@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# omarchy:summary=Launch a URL as a web app in the default supported browser
+# omarchy:args=<url>
+#
+# PATCHED by dotfiles/omarchy-setup/patch-omarchy/patch-webapp.sh.
+# Stock omarchy only supports Chromium-family browsers and falls back to
+# chromium.desktop, which is not installed here. On this Firefox-only setup,
+# delegate to firefox-pwa so web apps (including ones created through the
+# omarchy menu) open in the customized "pwas" profile.
+# Omarchy updates may restore the stock script; re-run patch-webapp.sh after.
+
+browser=$(xdg-settings get default-web-browser)
+
+case $browser in
+google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium* | chromium*)
+  exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "${@:2}"
+  ;;
+*)
+  exec firefox-pwa pwas "$1"
+  ;;
+esac

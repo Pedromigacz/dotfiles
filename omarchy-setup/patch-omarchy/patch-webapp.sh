@@ -42,3 +42,24 @@ else
   echo "Firefox profile '$FIREFOX_PROFILE_NAME' created."
 fi
 
+# Replace omarchy's launcher so web apps created through the omarchy menu
+# (elephant/walker) open via firefox-pwa instead of requiring a Chromium
+# browser. Omarchy updates restore the stock script, so this must re-run
+# after every update (pre-stow.sh handles that).
+OMARCHY_BIN="$HOME/.local/share/omarchy/bin"
+LAUNCHER_NAME="omarchy-launch-webapp"
+LAUNCHER_SOURCE="$SCRIPT_DIR/$LAUNCHER_NAME"
+
+if [[ ! -f "$LAUNCHER_SOURCE" ]]; then
+  echo "Error: '$LAUNCHER_NAME' not found next to this script (expected at $LAUNCHER_SOURCE)"
+  exit 1
+fi
+
+if [[ -d "$OMARCHY_BIN" ]]; then
+  cp "$LAUNCHER_SOURCE" "$OMARCHY_BIN/$LAUNCHER_NAME"
+  chmod +x "$OMARCHY_BIN/$LAUNCHER_NAME"
+  echo "Patched: $OMARCHY_BIN/$LAUNCHER_NAME"
+else
+  echo "Warning: '$OMARCHY_BIN' not found, skipping $LAUNCHER_NAME patch."
+fi
+
