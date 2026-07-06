@@ -2,7 +2,7 @@
 Version=1.0
 Name=GitHub
 Comment=GitHub
-Exec=firefox-pwa pwas https://github.com/
+Exec=omarchy-launch-webapp https://github.com/
 Terminal=false
 Type=Application
 Icon=/home/pedro/.local/share/applications/icons/GitHub.png

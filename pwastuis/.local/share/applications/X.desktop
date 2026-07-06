@@ -2,7 +2,7 @@
 Version=1.0
 Name=X
 Comment=X
-Exec=firefox-pwa pwas https://x.com/
+Exec=omarchy-launch-webapp https://x.com/
 Terminal=false
 Type=Application
 Icon=/home/pedro/.local/share/applications/icons/X.png
