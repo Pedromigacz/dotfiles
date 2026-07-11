@@ -2,7 +2,8 @@
 Version=1.0
 Name=Figma
 Comment=Figma
-Exec=omarchy-launch-webapp https://www.figma.com/
+# Opens in chromium due to how fucking hard it is to make figma get system fonts on firefox 
+Exec=uwsm-app -- chromium --app=https://www.figma.com/
 Terminal=false
 Type=Application
 Icon=/home/pedro/.local/share/applications/icons/Figma.png
