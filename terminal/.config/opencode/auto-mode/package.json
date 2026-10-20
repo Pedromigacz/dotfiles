@@ -1,0 +1,14 @@
+{
+  "name": "opencode-auto-mode-local",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "1.18.34",
+    "@types/bun": "^1.3.0",
+    "typescript": "^5.9.0"
+  }
+}
