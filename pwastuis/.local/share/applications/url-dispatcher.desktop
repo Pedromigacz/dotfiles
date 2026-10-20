@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=URL Dispatcher
+Comment=Routes figma.com links to the Chromium Figma PWA, everything else to Firefox
+Exec=/home/pedro/.local/bin/url-dispatcher %U
+Terminal=false
+Type=Application
+NoDisplay=true
+MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;
+StartupNotify=false

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# Default browser handler: figma.com links open in the Chromium Figma PWA,
+# everything else opens in Firefox.
+
+set -euo pipefail
+
+# Answer --help as firefox so omarchy-launch-browser's detection (grep for
+# MOZ_LOG) treats this dispatcher as firefox and sends firefox-style flags.
+if [[ ${1:-} == --help ]]; then
+  exec firefox --help
+fi
+
+launch() {
+  setsid -f uwsm-app -- "$@" >/dev/null 2>&1
+}
+
+flags=() urls=()
+for arg in "$@"; do
+  if [[ $arg == -* ]]; then flags+=("$arg"); else urls+=("$arg"); fi
+done
+
+if ((${#urls[@]} == 0)); then
+  launch firefox "${flags[@]}"
+  exit
+fi
+
+for url in "${urls[@]}"; do
+  if [[ $url =~ ^https?://([A-Za-z0-9-]+\.)*figma\.com([/:?#]|$) ]]; then
+    launch chromium --app="$url"
+  else
+    launch firefox "${flags[@]}" "$url"
+  fi
+done
