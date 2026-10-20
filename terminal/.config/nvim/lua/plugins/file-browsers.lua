@@ -45,14 +45,13 @@ return {
           if vim.v.shell_error ~= 0 then return end -- not a git repo, leave h alone
 
           vim.keymap.set("n", "h", function()
-            local current = mf.get_fs_entry()
-            if not current then return end
+            -- Use the focused directory from explorer state (works for empty
+            -- directories, where get_fs_entry() returns nil)
+            local state = mf.get_explorer_state()
+            if not state then return end
+            local dir = state.branch[state.depth_focus]
 
-            -- Get the parent of the currently visible directory
-            local dir = vim.fn.fnamemodify(current.path, ":h")
-            local parent = vim.fn.fnamemodify(dir, ":h")
-
-            if dir == git_root or parent == git_root and dir == git_root then
+            if dir == git_root then
               return -- already at root, block going further
             end
 
