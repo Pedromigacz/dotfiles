@@ -7,3 +7,6 @@ firefox/.mozilla/firefox/profile.*/*
 
 # Claude Code manages skills synced from claude.ai.
 **/.claude/skills/synced/
+
+# OpenCode's machine-local service configuration contains credentials.
+/terminal/.config/opencode/service.json

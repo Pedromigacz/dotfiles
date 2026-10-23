@@ -12,15 +12,28 @@
       ]
     }
   },
-  "plugin": [
-    ["./auto-mode/index.ts", {
+  "plugins": [
+    { "package": "./auto-mode", "options": {
       "model": "openai/gpt-6-astra",
       "timeoutMs": 20000,
       "minConfidence": 0.9,
       "maxConcurrentReviews": 2,
       "notify": true
-    }]
+    }}
   ],
+  "agents": {
+    "automode": {
+      "description": "Build with automatic permission review for routine operations",
+      "mode": "primary",
+      "hidden": false,
+      "permissions": [
+        { "action": "question", "resource": "*", "effect": "allow" },
+        { "action": "shell", "resource": "*", "effect": "ask" },
+        { "action": "webfetch", "resource": "*", "effect": "ask" },
+        { "action": "aws-mcp_*", "resource": "*", "effect": "ask" }
+      ]
+    }
+  },
   "permission": {
     "external_directory": {
       "~/Work": "allow",

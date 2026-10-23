@@ -112,7 +112,7 @@ export async function fastDecision(
   if (["doom_loop", "question", "plan_enter", "plan_exit"].includes(request.permission)) {
     return ask("This checkpoint needs the user")
   }
-  if (request.permission !== "bash" || call?.tool !== "bash") return
+  if (!["bash", "shell"].includes(request.permission) || !call || !["bash", "shell"].includes(call.tool)) return
   const command = call.args.command
   if (typeof command !== "string") return
   // Never authorize a full shell operation from the shortened patterns alone.
