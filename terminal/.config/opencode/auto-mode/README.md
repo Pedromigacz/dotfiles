@@ -16,9 +16,11 @@ selected model; the plugin's `model` option controls only permission review.
   automode tool calls. Existing allows and configured denies retain their behavior.
 - Full tool inputs are captured through V2 tool hooks. Resumed calls recover inputs
   from the issuing assistant message, checking its agent and call ID.
-- A small deterministic policy approves recognized read-only Git commands within
-  the current repository. Quotes, chains, substitutions, unfamiliar flags, writes,
-  and unrecognized commands go to the model reviewer.
+- A deterministic policy approves read-only Git commands (including plain `git diff`,
+  history, object/ref inspection, and listing modes of branch/tag/config/stash/worktree)
+  in any repository, with literal quoted paths and directory options such as `-C`.
+  Chains, substitutions, writes, and unrecognized syntax go to the model reviewer,
+  which is also instructed to always allow wholly read-only Git operations.
 - Review includes tool inputs, permission resources, metadata, working directory,
   and up to three user messages from the last 20 context messages.
 - `generate.text` uses the configured provider authentication without tools,

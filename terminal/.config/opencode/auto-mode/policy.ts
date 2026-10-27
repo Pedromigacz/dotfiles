@@ -63,40 +63,53 @@ export async function repositoryAt(cwd: string, worktree: string): Promise<Repos
   }
 }
 
-// Deliberately a tiny language, not a shell parser. Quotes, expansions, pipes,
-// redirections, command chains and global git options all go to the reviewer.
-export function simpleGitRead(command: string, repo: Repository): boolean {
-  if (command.length > 8000 || !/^[a-zA-Z0-9_./:@=,+~^ -]+$/.test(command)) return false
-  const [git, subcommand, ...args] = command.trim().split(/ +/)
-  if (git !== "git") return false
-  const ref = (s: string) => /^[a-zA-Z0-9_][a-zA-Z0-9_./~^@-]*$/.test(s)
-  const flagsOnly = (flags: string[]) => args.every((arg) => flags.includes(arg))
+// Literal shell arguments only. Compound operations still need whole-operation review.
+export function simpleGitRead(command: string): boolean {
+  if (command.length > 8000 || /[$`\\\r\n]/.test(command)) return false
+  const tokens = command.match(/"[^"\n]*"|'[^'\n]*'|[^\s"';&|<>()#]+/g)
+  if (!tokens || tokens.join(" ") !== command.trim().replace(/[ \t]+/g, " ")) return false
+  const args = tokens.map((token) => /^["']/.test(token) ? token.slice(1, -1) : token)
+  if (args.shift() !== "git") return false
+  while (args.length) {
+    if (["-C", "--git-dir", "--work-tree", "--namespace"].includes(args[0])) {
+      args.shift()
+      if (!args.shift()) return false
+    } else if (/^--(?:git-dir|work-tree|namespace)=.+$/.test(args[0]) ||
+      ["--no-pager", "--paginate", "-P", "-p", "--no-optional-locks", "--literal-pathspecs", "--no-replace-objects"].includes(args[0])) args.shift()
+    else break
+  }
+  const subcommand = args.shift()
+  const options = args.slice(0, args.includes("--") ? args.indexOf("--") : args.length)
+  // Read commands can also write output or invoke explicitly supplied programs.
+  if (options.some((arg) => /^--(?:output|ext-diff|textconv|exec|upload-pack|receive-pack|open-files-in-pager)(?:=|$)/.test(arg))) return false
+  if (subcommand === "grep" && options.some((arg) => /^-O/.test(arg))) return false
+  if (["status", "diff", "show", "log", "shortlog", "reflog", "rev-parse", "rev-list",
+    "ls-files", "ls-tree", "ls-remote", "show-ref", "show-branch", "describe", "blame",
+    "annotate", "grep", "cat-file", "diff-files", "diff-index", "diff-tree", "merge-base",
+    "name-rev", "count-objects", "cherry", "whatchanged", "range-diff", "verify-commit",
+    "verify-tag", "check-ignore", "check-attr", "check-ref-format", "version", "help"].includes(subcommand ?? "")) {
+    if (subcommand === "reflog" && options.some((arg) => ["delete", "drop", "expire", "write"].includes(arg))) return false
+    return true
+  }
   switch (subcommand) {
-    case "status":
-      return flagsOnly(["--short", "-s", "--branch", "-b", "--porcelain", "--porcelain=v1", "--porcelain=v2", "--untracked-files=no"])
     case "branch":
-      return args.length > 0 && flagsOnly(["-r", "--remotes", "-a", "--all", "--list", "--show-current", "-v", "-vv", "--no-color"])
+    case "tag":
+      if (subcommand === "tag" && options.some((arg) => arg.startsWith("-a") || arg.startsWith("--annotate"))) return false
+      if (options.some((arg) => /^-[dDmMcCfsu]/.test(arg) || /^--(?:delete|move|copy|force|edit-description|set-upstream-to|unset-upstream|create-reflog|sign|annotate|message|file)(?:=|$)/.test(arg))) return false
+      return args.length === 0 || options.includes("--list") || options.includes("-l") ||
+        options.every((arg) => ["-r", "--remotes", "-a", "--all", "--show-current", "-v", "-vv", "--no-color"].includes(arg))
     case "remote":
-      return args.length === 0 || (args.length === 1 && args[0] === "-v")
-    case "ls-remote": {
-      const flags = ["--heads", "--branches", "--tags", "--refs", "--exit-code", "--quiet"]
-      let index = 0
-      while (flags.includes(args[index])) index++
-      return repo.remotes.includes(args[index]) && args.slice(index + 1).every(ref)
-    }
-    case "log":
-      return args.every((arg) => ["--oneline", "--all", "--graph", "--decorate", "--no-decorate", "--no-color"].includes(arg) || /^--max-count=\d+$/.test(arg) || /^-\d+$/.test(arg) || ref(arg))
-    case "show":
-      // Blob reads don't run external diff/textconv drivers. Commit/patch output
-      // is only accepted with both drivers explicitly disabled.
-      if (args.length === 1 && /^[a-zA-Z0-9_][a-zA-Z0-9_./~^@-]*:[a-zA-Z0-9_./-]+$/.test(args[0])) {
-        return !/(?:^|[/:])(?:\.env(?:\.|$)|\.ssh(?:\/|$)|\.aws(?:\/|$)|credentials(?:[./]|$)|id_rsa|id_ed25519)/i.test(args[0])
-      }
-      return args.includes("--no-ext-diff") && args.includes("--no-textconv") &&
-        args.every((arg) => ["--no-ext-diff", "--no-textconv", "--stat", "--oneline", "--no-color"].includes(arg) || ref(arg))
-    case "diff":
-      return args.includes("--no-ext-diff") && args.includes("--no-textconv") &&
-        args.every((arg) => ["--no-ext-diff", "--no-textconv", "--stat", "--name-only", "--name-status", "--cached", "--staged", "--no-color"].includes(arg) || ref(arg))
+      return args.length === 0 || args.every((arg) => ["-v", "--verbose"].includes(arg)) ||
+        ["show", "get-url"].includes(args[0])
+    case "stash":
+      return ["list", "show"].includes(args[0])
+    case "worktree":
+      return args[0] === "list"
+    case "config":
+      return ["get", "list"].includes(args[0]) || options.some((arg) => ["--get", "--get-all", "--get-regexp", "--get-urlmatch", "--list", "-l"].includes(arg)) &&
+        !options.some((arg) => /^--(?:unset|unset-all|replace-all|add|rename-section|remove-section|edit)(?:=|$)/.test(arg) || arg === "-e")
+    case "notes":
+      return args.length === 0 || ["list", "show"].includes(args[0])
     default:
       return false
   }
@@ -147,9 +160,7 @@ export async function fastDecision(
   }
   const github = ghDecision(command)
   if (github) return github
-  const cwd = typeof call.args.workdir === "string" ? path.resolve(directory, call.args.workdir) : directory
-  const repo = await repositoryAt(cwd, worktree)
-  if (repo && simpleGitRead(command, repo)) {
-    return { decision: "allow", reason: "Read-only Git operation in the current repository", confidence: 1 }
+  if (simpleGitRead(command)) {
+    return { decision: "allow", reason: "Read-only Git operation", confidence: 1 }
   }
 }

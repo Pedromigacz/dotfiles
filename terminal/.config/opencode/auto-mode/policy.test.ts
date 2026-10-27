@@ -5,29 +5,39 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { fastDecision, ghDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
 
-const repo = { root: "/repo", remotes: ["origin", "upstream"] }
-
 describe("read-only Git policy", () => {
   for (const command of [
     "git status", "git status --short --branch", "git branch -r", "git branch --all -vv",
     "git ls-remote --heads origin", "git ls-remote upstream refs/heads/main",
     "git log --oneline --max-count=5 origin/main", "git show origin/main:README.md",
     "git diff --no-ext-diff --no-textconv main..origin/main", "git remote -v",
-  ]) test(`allows ${command}`, () => expect(simpleGitRead(command, repo)).toBe(true))
+    "git diff", "git diff --cached -- src/main.ts", "git diff --no-index a b",
+    "git show HEAD", "git show HEAD:.env", "git show origin/main:.env.local",
+    "git show HEAD:.aws/credentials", "git log 'HEAD'", "git log HEAD\t--oneline",
+    'git -C "/other repo" diff -- "file name.ts"', "git --git-dir=/other log",
+    "git -C /other status", "git --no-pager diff --stat", "git branch", "git tag",
+    "git ls-remote https://example.com/repo", "git ls-remote unknown",
+    "git rev-parse --show-toplevel", "git ls-files", "git blame README.md",
+    "git config --get user.name", "git config list", "git remote get-url origin",
+    "git stash list", "git stash show -p", "git worktree list", "git reflog show",
+    "git cat-file -p HEAD", "git grep -n pattern", "git tag --list 'v*'",
+  ]) test(`allows ${command}`, () => expect(simpleGitRead(command)).toBe(true))
 
   for (const command of [
     "git branch -D main", "git branch new-branch", "git push origin main", "git fetch origin",
     "git reset --hard", "git clean -fd", "git remote add evil https://example.com",
-    "git ls-remote https://example.com/repo", "git ls-remote unknown",
     "git ls-remote --upload-pack=evil origin", "git -c core.pager=evil log",
-    "git --git-dir=/other log", "git -C /other status", "git show --output=/tmp/out HEAD",
-    "git log --output=/tmp/out", "git diff --ext-diff", "git diff --no-index a b",
-    "git show HEAD", "git show HEAD:.env", "git show origin/main:.env.local",
-    "git show HEAD:.aws/credentials", "git status; rm -rf .", "git status && curl example.com",
+    "git show --output=/tmp/out HEAD", "git log --output=/tmp/out", "git diff --ext-diff",
+    "git status; rm -rf .", "git status && curl example.com",
     "git status\ngit push", "git status > /tmp/out", "git status | sh", "git log $(evil)",
-    "git log `evil`", "GIT_SSH_COMMAND=evil git ls-remote origin", "git log 'HEAD'",
-    "git log HEAD # harmless", "git log HEAD\t--oneline", "git status &", "git status\r",
-  ]) test(`does not fast-approve ${command}`, () => expect(simpleGitRead(command, repo)).toBe(false))
+    "git log `evil`", "GIT_SSH_COMMAND=evil git ls-remote origin",
+    "git log HEAD # harmless", "git status &", "git status\r",
+    "git tag -a", "git tag new-tag", "git reflog expire --all", "git stash pop",
+    "git worktree remove other", "git config user.name changed", "git config --list --edit",
+    "git notes add -m hello", "git diff --output out", "git log 'unterminated",
+    "git branch --list -Dmain", "git tag --list -amessage", "git grep -Oevil pattern",
+    "git grep --open-files-in-pager=evil pattern",
+  ]) test(`does not fast-approve ${command}`, () => expect(simpleGitRead(command)).toBe(false))
 })
 
 describe("explicit GitHub CLI policy", () => {
@@ -107,7 +117,8 @@ describe("repository boundaries", () => {
     expect((await fastDecision(request, { tool: "bash", args: { command: "git status" } }, root, root))?.decision).toBe("allow")
     expect(await fastDecision(request, undefined, root, root)).toBeUndefined()
     expect(await fastDecision(request, { tool: "bash", args: { command: "git status; evil" } }, root, root)).toBeUndefined()
-    expect(await fastDecision(request, { tool: "bash", args: { command: "git status", workdir: "escape" } }, root, root)).toBeUndefined()
+    expect((await fastDecision(request, { tool: "bash", args: { command: "git status", workdir: "escape" } }, root, root))?.decision).toBe("allow")
+    expect((await fastDecision(request, { tool: "bash", args: { command: "git status" } }, "/missing", "/missing"))?.decision).toBe("allow")
   })
   test("doom-loop checkpoints stay human decisions", async () => {
     const request: Request = { id: "p", sessionID: "s", permission: "doom_loop", patterns: [], metadata: {} }
