@@ -102,6 +102,31 @@ export function simpleGitRead(command: string, repo: Repository): boolean {
   }
 }
 
+// Explicit GitHub CLI policy. Only built-in view commands are fast-approved;
+// other gh operations (including create/edit/delete) remain human decisions.
+const ghViewCommands = new Set(["pr", "issue", "repo", "release", "run", "workflow", "project", "gist", "ruleset"])
+
+export function ghDecision(command: string): Decision | undefined {
+  if (!/(?:^|[^a-zA-Z0-9_-])gh(?:\s|["']|$)/.test(command)) return
+  const manual = ask("GitHub CLI operations other than recognized view commands require user permission (including create/edit/delete)")
+  // Accept literal arguments, including quoted JSON/jq arguments, but never
+  // expansions, redirects, pipelines, or chained commands as a single read.
+  if (command.length > 8000 || /[$`\\\r\n]/.test(command)) return manual
+  const tokens = command.match(/"[^"\n]*"|'[^'\n]*'|[^\s"';&|<>()]+/g)
+  if (!tokens || tokens.join(" ") !== command.trim().replace(/ +/g, " ")) return manual
+  const args = tokens.map((token) => /^["']/.test(token) ? token.slice(1, -1) : token)
+  if (args.shift() !== "gh") return manual
+  while (args.length) {
+    if (["-R", "--repo", "--hostname"].includes(args[0])) {
+      args.shift()
+      if (!args.shift()) return manual
+    } else if (/^(?:--repo|--hostname)=.+$/.test(args[0])) args.shift()
+    else break
+  }
+  if (!ghViewCommands.has(args[0]) || args[1] !== "view") return manual
+  return { decision: "allow", reason: `Read-only GitHub CLI pattern: gh ${args[0]} view *`, confidence: 1 }
+}
+
 export async function fastDecision(
   request: Request,
   call: ToolCall | undefined,
@@ -116,7 +141,12 @@ export async function fastDecision(
   const command = call.args.command
   if (typeof command !== "string") return
   // Never authorize a full shell operation from the shortened patterns alone.
-  if (request.metadata.command !== command) return
+  if (request.metadata.command !== command) {
+    if (ghDecision(command)) return ask("Full matching GitHub CLI command evidence is required")
+    return
+  }
+  const github = ghDecision(command)
+  if (github) return github
   const cwd = typeof call.args.workdir === "string" ? path.resolve(directory, call.args.workdir) : directory
   const repo = await repositoryAt(cwd, worktree)
   if (repo && simpleGitRead(command, repo)) {

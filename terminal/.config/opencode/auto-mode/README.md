@@ -30,6 +30,21 @@ selected model; the plugin's `model` option controls only permission review.
   and timeouts leave the decision to the user. Explicit human checkpoints remain
   manual. Plugin cleanup cancels pending reviews.
 
+### Explicit GitHub CLI patterns
+
+These rules run before the model reviewer:
+
+| Pattern | Decision |
+| --- | --- |
+| `gh {pr,issue,repo,release,run,workflow,project,gist,ruleset} view …` | Allow |
+| `gh … create …`, `gh … edit …`, `gh … delete …` | Ask the user |
+| Other `gh` operations, including API calls and compound shell commands | Ask the user |
+
+View commands accept literal quoted arguments and `-R`/`--repo`/`--hostname`
+global options. Shell expansions, redirects, and chains never receive view-only
+approval. These are deterministic plugin rules, so the reviewer cannot approve
+a GitHub mutation. Existing configured allows/denies still take precedence.
+
 ## Configuration
 
 ```jsonc

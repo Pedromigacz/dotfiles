@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { fastDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
+import { fastDecision, ghDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
 
 const repo = { root: "/repo", remotes: ["origin", "upstream"] }
 
@@ -28,6 +28,38 @@ describe("read-only Git policy", () => {
     "git log `evil`", "GIT_SSH_COMMAND=evil git ls-remote origin", "git log 'HEAD'",
     "git log HEAD # harmless", "git log HEAD\t--oneline", "git status &", "git status\r",
   ]) test(`does not fast-approve ${command}`, () => expect(simpleGitRead(command, repo)).toBe(false))
+})
+
+describe("explicit GitHub CLI policy", () => {
+  for (const command of [
+    "gh pr view 123", "gh issue view 12 --comments", "gh repo view owner/repo",
+    "gh release view v1", "gh run view 123 --log", "gh workflow view ci.yml",
+    "gh project view 1", "gh gist view abc", "gh ruleset view 123",
+    'gh pr view 123 --json title,body --jq ".title"',
+    "gh --repo owner/repo pr view 123", "gh issue view 12 -R owner/repo",
+  ]) test(`allows ${command}`, () => expect(ghDecision(command)?.decision).toBe("allow"))
+
+  for (const command of [
+    'gh issue create --title "hello"', "gh pr edit 123 --title updated", "gh repo delete owner/repo",
+    "gh --repo owner/repo issue delete 12", "gh project item-delete 1 --id abc",
+    "gh pr merge 123", "gh api repos/owner/repo -X DELETE",
+    "gh pr view 123 && gh issue delete 12", "gh pr view 123; touch file",
+    "gh pr view 123 > output", "gh pr view 123 | sh", "gh pr view $(evil)",
+    "gh pr view `evil`", "gh pr view 123\ngh issue create", "gh pr view 'unterminated",
+    "env GH_HOST=example.com gh issue create", "/usr/bin/gh issue delete 1",
+    "gh custom view", "gh alias set view '!evil'",
+  ]) test(`asks for ${command}`, () => expect(ghDecision(command)?.decision).toBe("ask"))
+
+  test("does not intercept unrelated commands", () => expect(ghDecision("git status")).toBeUndefined())
+
+  test("runs before repository lookup and requires full command evidence", async () => {
+    const command = "gh pr view 123"
+    const request: Request = { id: "p", sessionID: "s", permission: "shell", patterns: ["gh pr view *"], metadata: { command } }
+    const call = { tool: "shell", args: { command } }
+    expect((await fastDecision(request, call, "/missing", "/missing"))?.decision).toBe("allow")
+    request.metadata.command = "gh pr view *"
+    expect((await fastDecision(request, call, "/missing", "/missing"))?.decision).toBe("ask")
+  })
 })
 
 describe("model output validation", () => {
