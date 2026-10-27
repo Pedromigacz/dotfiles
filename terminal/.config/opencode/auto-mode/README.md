@@ -76,8 +76,16 @@ ask/deny explanations are now carried by native permission evaluation messages.
 The timeout range is 100–120000 ms; concurrency is 1–10; confidence is 0–1.
 Model references may include `#variant`.
 
-The adjacent configuration asks for shell, webfetch, and AWS MCP operations under
-automode. Add other review rules using native V2 agent permissions, for example:
+The adjacent configuration allows common verification commands directly under
+automode: Bun/npm/pnpm/Yarn test, lint, check, typecheck, coverage, and build
+scripts (including suffixes such as `test:unit`), Biome, ESLint, TypeScript,
+Vitest, Jest, Playwright tests, Python tests/checkers, Cargo and Go verification,
+and Make test/check/lint targets. These explicit allows bypass the reviewer,
+including when review is disabled or unavailable. Package-runner forms are listed
+explicitly in `opencode.jsonc`, including `bunx run biome *`.
+
+Other shell commands, webfetch, and AWS MCP operations use permission review.
+Add other review rules using native V2 agent permissions, for example:
 
 ```jsonc
 "agents": {
