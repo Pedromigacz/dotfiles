@@ -84,6 +84,13 @@ and Make test/check/lint targets. These explicit allows bypass the reviewer,
 including when review is disabled or unavailable. Package-runner forms are listed
 explicitly in `opencode.jsonc`, including `bunx run biome *`.
 
+The configuration also directly allows routine Git diff/status/log/grep,
+directory/search inspection, Prettier writes, and the audited environment-prefixed
+build/test commands and Node-version wrappers from the permission history.
+The two HTTP inspection commands and inline Node dependency-resolution check use
+exact rules. These native rules cover all 89 routine command occurrences from the
+October 20–21 audit without needing reviewer context or a model response.
+
 Other shell commands, webfetch, and AWS MCP operations use permission review.
 Add other review rules using native V2 agent permissions, for example:
 
