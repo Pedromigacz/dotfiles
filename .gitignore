@@ -10,3 +10,4 @@ firefox/.mozilla/firefox/profile.*/*
 
 # OpenCode's machine-local service configuration contains credentials.
 /terminal/.config/opencode/service.json
+/terminal/.config/opencode/secrets/

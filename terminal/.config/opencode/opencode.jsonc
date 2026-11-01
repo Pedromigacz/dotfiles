@@ -15,6 +15,14 @@
       "kaneo": {
         "type": "remote",
         "url": "https://projects.migaczbrothers.com/api/mcp"
+      },
+      "coolify": {
+        "type": "remote",
+        "url": "https://coolify.migaczbrothers.com/mcp",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {file:~/.config/opencode/secrets/coolify-token}"
+        }
       }
     }
   },
