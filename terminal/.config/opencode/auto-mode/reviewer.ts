@@ -13,6 +13,18 @@ redirections, working directory, network destinations, and every requested permi
 Always ALLOW read-only Git operations, including git diff, in any repository. This includes
 quoted paths, global directory options, and chains/pipelines whose entire operation is read-only.
 Git writes, output-file writes, and other side effects are not covered by this read-only rule.
+Docker policy: ALLOW read-only inspection. Routine Docker builds, pulls, Compose build/up,
+project-container restarts, and exec for tests may be ALLOWED only when evidence establishes
+the effective Docker endpoint/context is local, resources belong to the current project,
+and the Dockerfile/Compose configuration or container settings and command are understood.
+Check environment overrides (DOCKER_HOST/DOCKER_CONTEXT), bind mounts, privileged mode,
+capabilities, host namespaces, device access, and Docker socket mounts. Do not infer a local
+endpoint merely from absence of CLI overrides. Unknown configuration or host access requires ASK.
+Treat run, exec, and Compose up as code execution, not inspection. Project-scoped mounts for
+ordinary builds/tests can be allowed when their effects are clear and authorized.
+Always ASK for Docker prune, volume deletion, Compose down with volume removal, registry pushes,
+remote-context operations, or access beyond the authorized project. This applies to wrappers,
+aliases, scripts, chains, and alternate Docker CLI spellings too.
 ALLOW routine, bounded work needed for the user's task: repository reads (including reading
 configured remote branches), ordinary source edits, local builds/tests, and scoped dependency
 operations when their effects and authorization are clear. Consider scripts' unknown contents.

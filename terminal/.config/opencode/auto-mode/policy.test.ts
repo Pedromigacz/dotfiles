@@ -3,7 +3,46 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { fastDecision, ghDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
+import { dockerDecision, fastDecision, ghDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
+
+describe("Docker policy", () => {
+  for (const command of [
+    "docker ps -a", "docker images", "docker inspect app", "docker logs --tail 50 app",
+    "docker stats --no-stream", "docker version", "docker info", "docker system df",
+    "docker container ls", "docker image ls", "docker volume inspect data",
+    "docker network ls", "docker context ls", "docker context inspect",
+    "docker compose ps", "docker compose logs app", "docker compose config",
+    'docker compose -f "compose dev.yml" --project-name app config --services',
+  ]) test(`allows ${command}`, () => expect(dockerDecision(command)?.decision).toBe("allow"))
+
+  for (const command of [
+    "docker system prune -af", "docker volume rm data", "docker compose down -v",
+    "docker compose down --volumes", "docker compose down --volumes=true",
+    "docker push registry/app", "docker buildx build --push .",
+    "docker --context prod ps", "docker -Hssh://prod ps",
+    "docker ps --context=prod", "DOCKER_HOST=ssh://prod docker ps",
+    "docker compose config --output out.yml", "docker compose config -oout.yml",
+    "docker compose config --resolve-image-digests", "docker compose config --lock-image-digests",
+    "docker ps && touch file", "docker ps > out", "docker ps | sh",
+    "docker logs $(evil)", "docker ps\ndocker push app", "docker inspect 'unterminated",
+    "sudo docker ps", "/usr/bin/docker ps", "docker-compose up",
+  ]) test(`asks for ${command}`, () => expect(dockerDecision(command)?.decision).toBe("ask"))
+
+  for (const command of [
+    "docker build .", "docker pull postgres", "docker compose up -d", "docker compose build",
+    "docker restart app", "docker exec app npm test", "docker run app", "docker stats",
+    "docker stats --no-stream --no-stream=false", "docker compose down", "git status",
+  ]) test(`leaves ${command} to review`, () => expect(dockerDecision(command)).toBeUndefined())
+
+  test("requires full matching evidence before approval", async () => {
+    const command = "docker ps"
+    const request: Request = { id: "p", sessionID: "s", permission: "shell", patterns: ["docker *"], metadata: { command } }
+    const call = { tool: "shell", args: { command } }
+    expect((await fastDecision(request, call, "/missing", "/missing"))?.decision).toBe("allow")
+    request.metadata.command = "docker *"
+    expect((await fastDecision(request, call, "/missing", "/missing"))?.decision).toBe("ask")
+  })
+})
 
 describe("read-only Git policy", () => {
   for (const command of [

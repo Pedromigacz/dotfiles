@@ -49,6 +49,21 @@ a GitHub mutation. Existing configured allows/denies still take precedence.
 
 ## Configuration
 
+### Docker policy
+
+Docker inspection (`ps`, `images`, `inspect`, `logs`, `stats --no-stream`,
+`version`, `info`, `system df`, and Compose `ps/logs/config`) is fast-approved
+for literal standalone commands. Common resource listing/inspection forms and
+Compose file/project options are supported. Output-writing config options,
+explicit endpoint/context overrides, and compound/wrapped commands stay manual.
+
+Builds, pulls, Compose build/up, project-container restarts, and test execution
+go to the reviewer. Approval requires evidence of the effective local Docker
+context, project ownership, and understood configuration/mounts/host access.
+The reviewer has no tools: missing evidence results in a user prompt.
+Pruning, deletion, registry pushes, and Compose volume removal require confirmation.
+Existing native allows/denies still take precedence over plugin review.
+
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",

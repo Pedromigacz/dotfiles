@@ -40,6 +40,7 @@
         { "action": "shell", "resource": "git status *", "effect": "allow" },
         { "action": "shell", "resource": "git log *", "effect": "allow" },
         { "action": "shell", "resource": "git grep *", "effect": "allow" },
+        { "action": "shell", "resource": "git ls-files .specs .gitignore", "effect": "allow" },
         { "action": "shell", "resource": "ls *", "effect": "allow" },
         { "action": "shell", "resource": "rg *", "effect": "allow" },
         { "action": "shell", "resource": "sort", "effect": "allow" },

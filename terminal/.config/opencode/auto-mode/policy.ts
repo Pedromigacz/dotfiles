@@ -140,6 +140,45 @@ export function ghDecision(command: string): Decision | undefined {
   return { decision: "allow", reason: `Read-only GitHub CLI pattern: gh ${args[0]} view *`, confidence: 1 }
 }
 
+// Keep compound/wrapped Docker commands manual rather than approving a read prefix.
+export function dockerDecision(command: string): Decision | undefined {
+  if (!/(?:^|[^a-zA-Z0-9_-])docker(?:-compose)?(?:\s|["']|$)/.test(command)) return
+  const manual = ask("Docker command requires user permission: destructive, remote, publishing, or unrecognized shell syntax")
+  if (command.length > 8000 || /[$`\\\r\n]/.test(command)) return manual
+  const tokens = command.match(/"[^"\n]*"|'[^'\n]*'|[^\s"';&|<>()#]+/g)
+  if (!tokens || tokens.join(" ") !== command.trim().replace(/[ \t]+/g, " ")) return manual
+  const args = tokens.map((token) => /^["']/.test(token) ? token.slice(1, -1) : token)
+  if (args.shift() !== "docker") return manual
+  // Explicit endpoint/context overrides stay manual, including options after verbs.
+  if (args.some((arg) => /^(?:--context|--host|--config)(?:=|$)|^-[cH]/.test(arg))) return manual
+  if (args.some((arg) => ["prune", "push", "rm", "remove", "rmi", "login", "logout"].includes(arg))) return manual
+  if (args.some((arg) => /^--push(?:=|$)/.test(arg))) return manual
+  let verb = args.shift()
+  if (["container", "image", "network", "volume", "system", "context"].includes(verb ?? "")) {
+    const group = verb
+    verb = args.shift()
+    if (verb === "ls" && group !== "system") verb = "images"
+    else if (verb !== "inspect" && !(group === "system" && verb === "df") &&
+      !(group === "container" && ["ps", "logs", "stats"].includes(verb ?? ""))) return
+  }
+  if (verb === "compose") {
+    while (args.length) {
+      if (["-f", "--file", "-p", "--project-name", "--project-directory", "--env-file", "--profile"].includes(args[0])) {
+        args.shift()
+        if (!args.shift()) return manual
+      } else if (/^--(?:file|project-name|project-directory|env-file|profile)=.+$/.test(args[0])) args.shift()
+      else break
+    }
+    verb = args.shift()
+    if (verb === "down" && args.some((arg) => /^--volumes(?:=|$)|^-[^-]*v/.test(arg))) return manual
+    if (!["ps", "logs", "config"].includes(verb ?? "")) return
+    // Compose config can write files or resolve/download image digests.
+    if (verb === "config" && args.some((arg) => /^--(?:output|resolve-image-digests|lock-image-digests)(?:=|$)|^-o/.test(arg))) return manual
+  } else if (!["ps", "images", "inspect", "logs", "stats", "version", "info", "df"].includes(verb ?? "")) return
+  if (verb === "stats" && (!args.includes("--no-stream") || args.some((arg) => arg.startsWith("--no-stream=")))) return
+  return { decision: "allow", reason: "Read-only Docker inspection", confidence: 1 }
+}
+
 export async function fastDecision(
   request: Request,
   call: ToolCall | undefined,
@@ -156,10 +195,13 @@ export async function fastDecision(
   // Never authorize a full shell operation from the shortened patterns alone.
   if (request.metadata.command !== command) {
     if (ghDecision(command)) return ask("Full matching GitHub CLI command evidence is required")
+    if (dockerDecision(command)) return ask("Full matching Docker command evidence is required")
     return
   }
   const github = ghDecision(command)
   if (github) return github
+  const docker = dockerDecision(command)
+  if (docker) return docker
   if (simpleGitRead(command)) {
     return { decision: "allow", reason: "Read-only Git operation", confidence: 1 }
   }
