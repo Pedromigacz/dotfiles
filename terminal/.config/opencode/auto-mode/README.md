@@ -39,6 +39,7 @@ These rules run before the model reviewer:
 | Pattern | Decision |
 | --- | --- |
 | `gh {pr,issue,repo,release,run,workflow,project,gist,ruleset} view …` | Allow |
+| `gh issue list …`, `gh search issues …`, `gh pr checks …` | Allow |
 | `gh … create …`, `gh … edit …`, `gh … delete …` | Ask the user |
 | Other `gh` operations, including API calls and compound shell commands | Ask the user |
 
@@ -46,6 +47,23 @@ View commands accept literal quoted arguments and `-R`/`--repo`/`--hostname`
 global options. Shell expansions, redirects, and chains never receive view-only
 approval. These are deterministic plugin rules, so the reviewer cannot approve
 a GitHub mutation. Existing configured allows/denies still take precedence.
+
+### Audited verification commands
+
+The deterministic policy also approves literal standalone commands for:
+
+- `bun run` test, typecheck, type-check, build, lint, check, and coverage scripts,
+  including colon suffixes and `--cwd <directory>` before the script.
+- `bun run ci:run`, `ci:knip`, `ci:biome`, and `knip`.
+- `bunx [--no-install] biome …` and `bun x [--no-install] biome …` (also
+  `@biomejs/biome`) for check, lint, format, and ci, including `--write`.
+- `actionlint …`, `shellcheck …`, and `mise ls` with optional bun, node,
+  actionlint, or shellcheck tool names.
+
+Verification commands can be wrapped with `mise exec <tool>@<major.minor.patch>
+… --`, using bun, node, actionlint, and shellcheck. The inner command must still
+match the verification policy. Environment overrides, redirects, pipelines,
+command chains, installs, and arbitrary inline scripts require review.
 
 ## Configuration
 

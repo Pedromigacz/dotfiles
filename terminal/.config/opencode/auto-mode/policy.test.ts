@@ -3,7 +3,40 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { dockerDecision, fastDecision, ghDecision, parseDecision, repositoryAt, simpleGitRead, type Request } from "./policy"
+import { dockerDecision, fastDecision, ghDecision, parseDecision, repositoryAt, routineVerification, simpleGitRead, type Request } from "./policy"
+
+describe("audited verification commands", () => {
+  for (const command of [
+    "mise exec node@22.23.3 bun@1.3.12 -- bun run test:scripts -- scripts/ci",
+    "mise exec bun@1.3.12 -- bunx --no-install biome check apps/web",
+    "mise exec actionlint@1.7.12 shellcheck@0.11.0 -- actionlint .github/workflows/ci-pipeline.yml",
+    "bun run --cwd apps/web build:ci", "bun run --cwd 'apps/mobile' typecheck:test",
+    "bun run ci:run contracts", "bun run ci:knip", "bun run ci:biome", "bun run knip",
+    "bun x --no-install biome check .", "bunx --no-install biome check --write .",
+    "actionlint .github/workflows/ci-pipeline.yml", "mise ls", "mise ls bun node",
+  ]) test(`allows ${command}`, () => expect(routineVerification(command)).toBe(true))
+
+  for (const command of [
+    "mise exec node@22.23.3 -- node -e 'evil()'", "mise exec bun@1.3.12 -- bun install",
+    "mise exec evil@1.2.3 -- bun run test", "mise exec bun@latest -- bun run test",
+    "mise exec -- bun run test", "mise exec bun@1.3.12 -- sh -c 'bun run test'",
+    "bun run --cwd apps/web deploy", "bun run test-malicious", "bun run ci:deploy",
+    "bun run test && rm file", "bun run test; touch file", "bun run test\nrm file",
+    "bun run test > output", "bun run test $(evil)", "bun run test `evil`",
+    "bun run test | sh", "bun run --cwd", "bunx --no-install evil check",
+    "bun x --no-install biome migrate --write", "mise ls --config evil.toml",
+    "NODE_OPTIONS=--require=evil bun run test",
+  ]) test(`reviews ${command}`, () => expect(routineVerification(command)).toBe(false))
+
+  test("requires matching full command evidence", async () => {
+    const command = "bun run --cwd apps/web build:ci"
+    const request: Request = { id: "p", sessionID: "s", permission: "shell", patterns: ["bun *"], metadata: { command } }
+    const call = { tool: "shell", args: { command } }
+    expect((await fastDecision(request, call, "/missing", "/missing"))?.decision).toBe("allow")
+    request.metadata.command = "bun *"
+    expect(await fastDecision(request, call, "/missing", "/missing")).toBeUndefined()
+  })
+})
 
 describe("Docker policy", () => {
   for (const command of [
@@ -86,6 +119,8 @@ describe("explicit GitHub CLI policy", () => {
     "gh project view 1", "gh gist view abc", "gh ruleset view 123",
     'gh pr view 123 --json title,body --jq ".title"',
     "gh --repo owner/repo pr view 123", "gh issue view 12 -R owner/repo",
+    "gh issue list --repo owner/repo", "gh search issues 'CI failure'",
+    "gh pr checks 1906", "gh pr checks 1906 --watch --interval 30",
   ]) test(`allows ${command}`, () => expect(ghDecision(command)?.decision).toBe("allow"))
 
   for (const command of [
@@ -97,6 +132,8 @@ describe("explicit GitHub CLI policy", () => {
     "gh pr view `evil`", "gh pr view 123\ngh issue create", "gh pr view 'unterminated",
     "env GH_HOST=example.com gh issue create", "/usr/bin/gh issue delete 1",
     "gh custom view", "gh alias set view '!evil'",
+    "gh issue list && gh issue delete 12", "gh search issues $(evil)",
+    "gh pr checks 1906 > output", "gh pr checks 1906; gh pr merge 1906",
   ]) test(`asks for ${command}`, () => expect(ghDecision(command)?.decision).toBe("ask"))
 
   test("does not intercept unrelated commands", () => expect(ghDecision("git status")).toBeUndefined())

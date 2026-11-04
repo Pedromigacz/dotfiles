@@ -23,6 +23,17 @@
         "headers": {
           "Authorization": "Bearer {file:~/.config/opencode/secrets/coolify-token}"
         }
+      },
+      "playwright": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@playwright/mcp@latest",
+          "--extension",
+          "--executable-path",
+          "/opt/helium-browser-bin/helium"
+        ]
       }
     }
   },

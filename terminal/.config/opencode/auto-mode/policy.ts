@@ -115,13 +115,13 @@ export function simpleGitRead(command: string): boolean {
   }
 }
 
-// Explicit GitHub CLI policy. Only built-in view commands are fast-approved;
+// Explicit GitHub CLI policy. Recognized built-in reads are fast-approved;
 // other gh operations (including create/edit/delete) remain human decisions.
 const ghViewCommands = new Set(["pr", "issue", "repo", "release", "run", "workflow", "project", "gist", "ruleset"])
 
 export function ghDecision(command: string): Decision | undefined {
   if (!/(?:^|[^a-zA-Z0-9_-])gh(?:\s|["']|$)/.test(command)) return
-  const manual = ask("GitHub CLI operations other than recognized view commands require user permission (including create/edit/delete)")
+  const manual = ask("GitHub CLI operations other than recognized read commands require user permission (including create/edit/delete)")
   // Accept literal arguments, including quoted JSON/jq arguments, but never
   // expansions, redirects, pipelines, or chained commands as a single read.
   if (command.length > 8000 || /[$`\\\r\n]/.test(command)) return manual
@@ -136,8 +136,45 @@ export function ghDecision(command: string): Decision | undefined {
     } else if (/^(?:--repo|--hostname)=.+$/.test(args[0])) args.shift()
     else break
   }
-  if (!ghViewCommands.has(args[0]) || args[1] !== "view") return manual
-  return { decision: "allow", reason: `Read-only GitHub CLI pattern: gh ${args[0]} view *`, confidence: 1 }
+  const read = ghViewCommands.has(args[0]) && args[1] === "view" ||
+    args[0] === "issue" && args[1] === "list" ||
+    args[0] === "search" && args[1] === "issues" ||
+    args[0] === "pr" && args[1] === "checks"
+  if (!read) return manual
+  return { decision: "allow", reason: `Read-only GitHub CLI pattern: gh ${args[0]} ${args[1]} *`, confidence: 1 }
+}
+
+// Match the entire literal command, then unwrap only known version-pinned tools.
+// Arbitrary mise commands, environment overrides, and shell syntax need review.
+export function routineVerification(command: string): boolean {
+  if (command.length > 8000 || /[$`\\\r\n]/.test(command)) return false
+  const tokens = command.match(/"[^"\n]*"|'[^'\n]*'|[^\s"';&|<>()#]+/g)
+  if (!tokens || tokens.join(" ") !== command.trim().replace(/[ \t]+/g, " ")) return false
+  let args = tokens.map((token) => /^["']/.test(token) ? token.slice(1, -1) : token)
+  if (args[0] === "mise" && args[1] === "ls") {
+    return args.slice(2).every((arg) => ["bun", "node", "actionlint", "shellcheck"].includes(arg))
+  }
+  if (args[0] === "mise" && args[1] === "exec") {
+    const separator = args.indexOf("--")
+    if (separator < 3 || !args.slice(2, separator).every((arg) =>
+      /^(?:bun|node|actionlint|shellcheck)@\d+\.\d+\.\d+$/.test(arg))) return false
+    args = args.slice(separator + 1)
+  }
+  if (["actionlint", "shellcheck"].includes(args[0])) return true
+  if (args[0] === "bun" && args[1] === "run") {
+    let script = 2
+    if (args[script] === "--cwd") {
+      if (!args[script + 1] || args[script + 1].startsWith("-")) return false
+      script += 2
+    }
+    return /^(?:(?:test|typecheck|type-check|build|lint|check|coverage)(?::[a-zA-Z0-9:_-]+)?|ci:(?:run|knip|biome)|knip)$/.test(args[script] ?? "")
+  }
+  if (args[0] === "bunx") args = args.slice(1)
+  else if (args[0] === "bun" && args[1] === "x") args = args.slice(2)
+  else return false
+  if (args[0] === "--no-install") args = args.slice(1)
+  return ["biome", "@biomejs/biome"].includes(args[0]) &&
+    ["check", "lint", "format", "ci"].includes(args[1])
 }
 
 // Keep compound/wrapped Docker commands manual rather than approving a read prefix.
@@ -204,5 +241,8 @@ export async function fastDecision(
   if (docker) return docker
   if (simpleGitRead(command)) {
     return { decision: "allow", reason: "Read-only Git operation", confidence: 1 }
+  }
+  if (routineVerification(command)) {
+    return { decision: "allow", reason: "Routine verification or toolchain inspection", confidence: 1 }
   }
 }
