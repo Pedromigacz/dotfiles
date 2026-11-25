@@ -3,10 +3,15 @@
   "permissions": {
     "defaultMode": "acceptEdits"
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@latest"
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "low"
+    }
   },
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
